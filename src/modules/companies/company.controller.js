@@ -1,0 +1,52 @@
+const service = require("./company.service");
+
+/* STEP 1 */
+exports.createCompany = async (req, res) => {
+  try {
+    const company = await service.createCompany(req.body);
+
+    res.status(201).json({
+      message: "company created",
+      companyId: company._id
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+/* STEP 2 */
+exports.createCompanyAdmin = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+
+    const result = await service.createCompanyAdmin(
+      companyId,
+      req.body
+    );
+
+    res.status(201).json({
+      message: "admin created",
+      adminId: result.admin._id,
+      tempPassword: result.tempPassword
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+/* STEP 3 — workspace setup */
+exports.setupWorkspace = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const company = await service.setupWorkspace(companyId, req.body);
+
+    res.status(200).json({
+      message: "workspace setup completed",
+      companyId: company._id,
+      companyUrl: company.workspace.companyUrl
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
