@@ -1,6 +1,6 @@
 const service = require("./company.service");
 
-/* STEP 1 */
+/* STEP 1 — create company */
 exports.createCompany = async (req, res) => {
   try {
     const company = await service.createCompany(req.body);
@@ -14,7 +14,7 @@ exports.createCompany = async (req, res) => {
   }
 };
 
-/* STEP 2 */
+/* STEP 2 — create company admin */
 exports.createCompanyAdmin = async (req, res) => {
   try {
     const { companyId } = req.params;
@@ -34,11 +34,15 @@ exports.createCompanyAdmin = async (req, res) => {
   }
 };
 
-/* STEP 3 — workspace setup */
+/* STEP 3 — setup workspace */
 exports.setupWorkspace = async (req, res) => {
   try {
     const { companyId } = req.params;
-    const company = await service.setupWorkspace(companyId, req.body);
+
+    const company = await service.setupWorkspace(
+      companyId,
+      req.body
+    );
 
     res.status(200).json({
       message: "workspace setup completed",
@@ -49,4 +53,3 @@ exports.setupWorkspace = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
-

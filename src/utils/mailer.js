@@ -1,13 +1,28 @@
 const nodemailer = require("nodemailer");
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS
+let transporter;
+
+function getTransporter() {
+  if (!transporter) {
+    console.log("SMTP_HOST =", process.env.SMTP_HOST);
+    console.log("SMTP_PORT =", process.env.SMTP_PORT);
+    console.log("SMTP_USER =", process.env.SMTP_USER);
+
+    transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST,
+      port: Number(process.env.SMTP_PORT),
+      secure: false, // REQUIRED for 587
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
   }
-});
+  return transporter;
+}
 
 exports.sendWorkspaceEmail = async ({
   to,
@@ -16,6 +31,8 @@ exports.sendWorkspaceEmail = async ({
   username,
   password
 }) => {
+  const transporter = getTransporter();
+
   await transporter.sendMail({
     from: `"QCS" <${process.env.SMTP_USER}>`,
     to,

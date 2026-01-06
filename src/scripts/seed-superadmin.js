@@ -1,4 +1,3 @@
-require("dotenv").config();
 const mongoose = require("mongoose");
 const bcrypt = require("bcrypt");
 const SuperAdmin = require("../modules/superadmin/superadmin.model");

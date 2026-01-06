@@ -1,13 +1,17 @@
 const Company = require("./company.model");
 const User = require("../users/user.model");
 const bcrypt = require("bcrypt");
+const isValidObjectId = require("../../utils/validateObjectId");
 const { generateTempPassword } = require("../../utils/password");
 const { sendWorkspaceEmail } = require("../../utils/mailer");
 
-
-/* STEP 1 — company setup */
+/* STEP 1 — create company */
 exports.createCompany = async (data) => {
   const { name, slug, country, timezone, currency } = data;
+
+  if (!name || !slug) {
+    throw new Error("name and slug are required");
+  }
 
   const exists = await Company.findOne({ slug });
   if (exists) throw new Error("company slug already exists");
@@ -22,8 +26,12 @@ exports.createCompany = async (data) => {
   });
 };
 
-/* STEP 2 — admin setup */
+/* STEP 2 — create company admin */
 exports.createCompanyAdmin = async (companyId, data) => {
+  if (!isValidObjectId(companyId)) {
+    throw new Error("invalid company id");
+  }
+
   const company = await Company.findById(companyId);
   if (!company) throw new Error("company not found");
 
@@ -32,11 +40,14 @@ exports.createCompanyAdmin = async (companyId, data) => {
   }
 
   const { name, email, contact } = data;
+  if (!name || !email) {
+    throw new Error("name and email are required");
+  }
 
-  const exists = await User.findOne({ email });
-  if (exists) throw new Error("email already in use");
+  const emailExists = await User.findOne({ email });
+  if (emailExists) throw new Error("email already in use");
 
-  const tempPassword = Math.random().toString(36).slice(-8);
+  const tempPassword = generateTempPassword();
   const hashed = await bcrypt.hash(tempPassword, 10);
 
   const admin = await User.create({
@@ -55,8 +66,12 @@ exports.createCompanyAdmin = async (companyId, data) => {
   return { admin, tempPassword };
 };
 
-
+/* STEP 3 — setup workspace */
 exports.setupWorkspace = async (companyId, data) => {
+  if (!isValidObjectId(companyId)) {
+    throw new Error("invalid company id");
+  }
+
   const company = await Company.findById(companyId);
   if (!company) throw new Error("company not found");
 
@@ -64,10 +79,8 @@ exports.setupWorkspace = async (companyId, data) => {
     throw new Error("company admin not created");
   }
 
-  // generate company url
   const companyUrl = `${company.slug}.qcs.com`;
 
-  // update workspace
   company.workspace = {
     ...data,
     companyUrl
@@ -76,11 +89,9 @@ exports.setupWorkspace = async (companyId, data) => {
   company.status = "ACTIVE";
   await company.save();
 
-  // fetch admin
   const admin = await User.findById(company.adminId);
   if (!admin) throw new Error("admin not found");
-
-  // generate NEW temp password
+console.log(admin,"----------");
   const tempPassword = generateTempPassword();
   const hashed = await bcrypt.hash(tempPassword, 10);
 
@@ -88,12 +99,11 @@ exports.setupWorkspace = async (companyId, data) => {
   admin.mustChangePassword = true;
   await admin.save();
 
-  // send email
   await sendWorkspaceEmail({
     to: admin.email,
     companyName: company.name,
     companyUrl,
-    username: admin.email,
+    username: admin.name,
     password: tempPassword
   });
 
