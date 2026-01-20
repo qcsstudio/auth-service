@@ -1,5 +1,7 @@
 const Company = require("./company.model");
 const User = require("../users/user.model");
+const Invite = require("../invites/invite.model");
+
 const bcrypt = require("bcrypt");
 const isValidObjectId = require("../../utils/validateObjectId");
 const { generateTempPassword } = require("../../utils/password");
@@ -28,6 +30,7 @@ exports.createCompany = async (data) => {
 
 /* STEP 2 — create company admin */
 exports.createCompanyAdmin = async (companyId, data) => {
+  // 1️⃣ validate companyId
   if (!isValidObjectId(companyId)) {
     throw new Error("invalid company id");
   }
@@ -35,18 +38,50 @@ exports.createCompanyAdmin = async (companyId, data) => {
   const company = await Company.findById(companyId);
   if (!company) throw new Error("company not found");
 
+  // 2️⃣ prevent duplicate admin
   if (company.adminId) {
     throw new Error("admin already exists");
   }
 
-  const { name, email, contact } = data;
+  // 3️⃣ extract payload
+  const { name, email, contact, inviteToken } = data;
+
   if (!name || !email) {
     throw new Error("name and email are required");
   }
 
-  const emailExists = await User.findOne({ email });
-  if (emailExists) throw new Error("email already in use");
+  // 4️⃣ INVITE FLOW (only if inviteToken exists)
+  if (inviteToken) {
+    const invite = await Invite.findOne({
+      token: inviteToken,
+      used: false
+    });
 
+    if (!invite) {
+      throw new Error("invalid or expired invite link");
+    }
+
+    // 🔐 enforce email match
+    if (invite.email !== email) {
+      throw new Error("email must match invite email");
+    }
+
+    // ⏰ expiry check
+    if (invite.expiresAt < new Date()) {
+      throw new Error("invite link expired");
+    }
+
+    // mark invite as used (but AFTER admin creation succeeds)
+    invite._inviteDoc = invite; // store temporarily
+  }
+
+  // 5️⃣ check email uniqueness (system-wide)
+  const emailExists = await User.findOne({ email });
+  if (emailExists) {
+    throw new Error("email already in use");
+  }
+
+  // 6️⃣ create admin with temp password
   const tempPassword = generateTempPassword();
   const hashed = await bcrypt.hash(tempPassword, 10);
 
@@ -60,9 +95,19 @@ exports.createCompanyAdmin = async (companyId, data) => {
     mustChangePassword: true
   });
 
+  // 7️⃣ attach admin to company
   company.adminId = admin._id;
   await company.save();
 
+  // 8️⃣ finalize invite (AFTER success)
+  if (inviteToken) {
+    const invite = await Invite.findOne({ token: inviteToken });
+    invite.used = true;
+    invite.companyId = company._id;
+    await invite.save();
+  }
+
+  // 9️⃣ return response
   return { admin, tempPassword };
 };
 
