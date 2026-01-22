@@ -28,6 +28,13 @@ const companySchema = new mongoose.Schema(
       trialEndDate: Date,
       partnerReseller: String,
       companyUrl: { type: String }
+    },
+
+    subscription: {
+      price: { type: Number, default: 0 },
+      isActive: { type: Boolean, default: false },
+      startDate: Date,
+      endDate: Date
     }
   },
   { timestamps: true }
