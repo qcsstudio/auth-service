@@ -7,30 +7,38 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "https://qcshrms.vercel.app",
+  "https://hrms.qcsstudio.com", // backend domain
 ];
 
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      // Allow server-to-server or Postman requests (no origin)
-      if (!origin) return callback(null, true);
+// Handle CORS for all routes
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true); // allow Postman/server-to-server
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    console.log("Blocked CORS for origin:", origin);
+    return callback(new Error("CORS not allowed"));
+  },
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+}));
 
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      } else {
-        console.log("Blocked CORS for origin:", origin);
-        return callback(new Error("CORS not allowed"));
-      }
-    },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // include OPTIONS for preflight
-    allowedHeaders: ["Content-Type", "Authorization"], // allow JWT headers
-    credentials: true, // allow cookies
-  })
-);
+// Handle OPTIONS preflight requests for all routes
+app.options("*", cors({
+  origin: allowedOrigins,
+  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"],
+  credentials: true
+}));
 
 /* ===================== BODY PARSER ===================== */
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+/* ===================== ROOT TEST ROUTE ===================== */
+app.get("/", (req, res) => {
+  res.send("HRMS backend is running securely with HTTPS!");
+});
 
 /* ===================== ROUTES ===================== */
 app.use("/auth/superadmin", require("./modules/superadmin/superadmin.routes"));
