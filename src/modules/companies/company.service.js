@@ -18,17 +18,17 @@ exports.createCompany = async (data) => {
   const exists = await Company.findOne({ slug });
   if (exists) throw new Error("company slug already exists");
 
-  return await Company.create({
-    name,
-    slug,
-    country,
-    timezone,
-    currency,
-    status: "DRAFT"
+   return await Company.create({
+    name: data.companyName,
+    slug: data.slug,
+    customUrl: data.customUrl,
+    industryType: data.industryType,
+    country: data.country,
+    timezone: data.timezone,
+    currency: data.currency
   });
 };
 
-/* STEP 2 — create company admin */
 exports.createCompanyAdmin = async (companyId, data) => {
   // 1️⃣ validate companyId
   if (!isValidObjectId(companyId)) {
@@ -36,7 +36,9 @@ exports.createCompanyAdmin = async (companyId, data) => {
   }
 
   const company = await Company.findById(companyId);
-  if (!company) throw new Error("company not found");
+  if (!company) {
+    throw new Error("company not found");
+  }
 
   // 2️⃣ prevent duplicate admin
   if (company.adminId) {
@@ -44,54 +46,30 @@ exports.createCompanyAdmin = async (companyId, data) => {
   }
 
   // 3️⃣ extract payload
-  const { name, email, contact, inviteToken } = data;
+  const { fullName, email, contact, role } = data;
 
-  if (!name || !email) {
-    throw new Error("name and email are required");
+  if (!fullName || !email || !role) {
+    throw new Error("fullName, email and role are required");
   }
 
-  // 4️⃣ INVITE FLOW (only if inviteToken exists)
-  if (inviteToken) {
-    const invite = await Invite.findOne({
-      token: inviteToken,
-      used: false
-    });
-
-    if (!invite) {
-      throw new Error("invalid or expired invite link");
-    }
-
-    // 🔐 enforce email match
-    if (invite.email !== email) {
-      throw new Error("email must match invite email");
-    }
-
-    // ⏰ expiry check
-    if (invite.expiresAt < new Date()) {
-      throw new Error("invite link expired");
-    }
-
-    // mark invite as used (but AFTER admin creation succeeds)
-    invite._inviteDoc = invite; // store temporarily
-  }
-
-  // 5️⃣ check email uniqueness (system-wide)
+  // 4️⃣ check email uniqueness (global)
   const emailExists = await User.findOne({ email });
   if (emailExists) {
     throw new Error("email already in use");
   }
 
-  // 6️⃣ create admin with temp password
-  const tempPassword = generateTempPassword();
-  const hashed = await bcrypt.hash(tempPassword, 10);
+  // 5️⃣ generate temp password
+  const tempPassword = generateStrongPassword();
+  const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
+  // 6️⃣ create admin
   const admin = await User.create({
-    name,
+    name: fullName,
     email,
     contact,
-    password: hashed,
-    role: "COMPANY_ADMIN",
+    role, // COMPANY_ADMIN
     companyId: company._id,
+    password: hashedPassword,
     mustChangePassword: true
   });
 
@@ -99,19 +77,19 @@ exports.createCompanyAdmin = async (companyId, data) => {
   company.adminId = admin._id;
   await company.save();
 
-  // 8️⃣ finalize invite (AFTER success)
-  if (inviteToken) {
-    const invite = await Invite.findOne({ token: inviteToken });
-    invite.used = true;
-    invite.companyId = company._id;
-    await invite.save();
-  }
+  // 8️⃣ send email IMMEDIATELY
+  await sendAdminWelcomeEmail({
+    to: admin.email,
+    name: admin.name,
+    companyUrl: company.customUrl,
+    tempPassword
+  });
 
-  // 9️⃣ return response
-  return { admin, tempPassword };
+  // 9️⃣ return
+  return { admin };
 };
 
-/* STEP 3 — setup workspace */
+
 exports.setupWorkspace = async (companyId, data) => {
   if (!isValidObjectId(companyId)) {
     throw new Error("invalid company id");
