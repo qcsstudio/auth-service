@@ -20,7 +20,7 @@ exports.sendSetupLink = async (req, res) => {
       token
     });
 
-    const setupUrl = `${process.env.FRONTEND_URL}/setup?token=${token}`;
+const setupUrl = `${process.env.BACKEND_URL}/invites/validate-invite?token=${token}`;
 
     await sendInviteEmail({
       to: email,
@@ -36,20 +36,26 @@ exports.sendSetupLink = async (req, res) => {
   }
 };
 
-
 exports.validateInvite = async (req, res) => {
-  const { token } = req.query;
+  try {
+    const { token } = req.query;
 
-  const invite = await Invite.findOne({ token, used: false });
-  if (!invite) return res.status(400).json({ message: "invalid invite" });
+    const invite = await Invite.findOne({ token, used: false });
+    if (!invite) {
+      return res.redirect("https://qcshrms.vercel.app/invalid-invite");
+    }
 
-  if (invite.expiresAt < new Date()) {
-    return res.status(400).json({ message: "invite expired" });
+    if (invite.expiresAt < new Date()) {
+      return res.redirect("https://qcshrms.vercel.app/invite-expired");
+    }
+
+    // ✅ VALID INVITE → REDIRECT USER
+    const redirectUrl = `https://qcshrms.vercel.app/org-setup?token=${token}`;
+
+    return res.redirect(redirectUrl);
+
+  } catch (err) {
+    console.error(err);
+    return res.redirect("https://qcshrms.vercel.app/error");
   }
-
-  res.json({
-    email: invite.email,
-    trial: invite.trial,
-    role: invite.role
-  });
 };
