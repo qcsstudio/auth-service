@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 
-/* ===================== CORS CONFIG ===================== */
+/* ===================== ALLOWED ORIGINS ===================== */
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
@@ -10,26 +10,32 @@ const allowedOrigins = [
   "https://hrms.qcsstudio.com", // backend domain
 ];
 
-// Handle CORS for all routes
-app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true); // allow Postman/server-to-server
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    console.log("Blocked CORS for origin:", origin);
-    return callback(new Error("CORS not allowed"));
-  },
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-}));
+/* ===================== CORS CONFIG ===================== */
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin) return callback(null, true); // allow Postman / server-to-server
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      console.log("Blocked CORS for origin:", origin);
+      return callback(new Error("CORS not allowed"));
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
 
-// Handle OPTIONS preflight requests for all routes
-app.options("*", cors({
-  origin: allowedOrigins,
-  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type","Authorization"],
-  credentials: true
-}));
+/* ===================== HANDLE PRE-FLIGHT OPTIONS ===================== */
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    res.header("Access-Control-Allow-Origin", allowedOrigins.join(","));
+    res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.header("Access-Control-Allow-Credentials", "true");
+    return res.sendStatus(200);
+  }
+  next();
+});
 
 /* ===================== BODY PARSER ===================== */
 app.use(express.json());
