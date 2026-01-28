@@ -49,26 +49,22 @@ exports.sendWorkspaceEmail = async ({
     `
   });
 };
-
 exports.sendInviteEmail = async ({ to, setupUrl, otp, token }) => {
   const transporter = getTransporter();
+
+  const oneLineUrl = `${setupUrl}?token=${token}`;
 
   await transporter.sendMail({
     from: `"QCS" <${process.env.SMTP_USER}>`,
     to,
-    subject: "Complete Your Company Setup",
+    subject: "Company Setup Invitation",
     html: `
-      <h3>Company Setup Invitation</h3>
-
-      <p><b>Setup URL:</b></p>
-      <a href="${setupUrl}">${setupUrl}</a>
+      <p>
+        <b>Setup Link:</b><br/>
+        <a href="${oneLineUrl}">${oneLineUrl}</a>
+      </p>
 
       <p><b>OTP:</b> ${otp}</p>
-
-      <p><b>Invite Token:</b></p>
-      <p style="word-break: break-all;">${token}</p>
-
-      <p>This link and OTP will expire as scheduled.</p>
     `
   });
 };
