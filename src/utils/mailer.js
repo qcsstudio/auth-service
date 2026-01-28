@@ -49,6 +49,7 @@ exports.sendWorkspaceEmail = async ({
     `
   });
 };
+
 exports.sendInviteEmail = async ({ to, setupUrl, otp, token }) => {
   const transporter = getTransporter();
 
