@@ -50,7 +50,7 @@ exports.sendWorkspaceEmail = async ({
   });
 };
 
-exports.sendInviteEmail = async ({ to, setupUrl }) => {
+exports.sendInviteEmail = async ({ to, setupUrl, otp }) => {
   const transporter = getTransporter();
 
   await transporter.sendMail({
@@ -59,6 +59,7 @@ exports.sendInviteEmail = async ({ to, setupUrl }) => {
     subject: "Complete Your Company Setup",
     html: `
       <h3>You are invited to setup your workspace</h3>
+      <p>Your OTP: <b>${otp}</b></p>
       <p>Click the link below to continue:</p>
       <a href="${setupUrl}">${setupUrl}</a>
       <p>This link will expire.</p>
@@ -66,3 +67,22 @@ exports.sendInviteEmail = async ({ to, setupUrl }) => {
   });
 };
 
+
+exports.sendAdminWelcomeEmail = async ({ to, name, companyUrl, tempPassword }) => {
+  const transporter = getTransporter();
+
+  await transporter.sendMail({
+    from: `"QCS" <${process.env.SMTP_USER}>`,
+    to,
+    subject: "Welcome to Your Company",
+    html: `
+      <h3>Hello ${name}</h3>
+      <p>You have been added as an admin to your company.</p>
+
+      <p><b>Company URL:</b> ${companyUrl}</p>
+      <p><b>Temporary Password:</b> ${tempPassword}</p>
+
+      <p>Please login and change your password immediately.</p>
+    `
+  });
+};

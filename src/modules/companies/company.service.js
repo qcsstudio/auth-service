@@ -1,44 +1,53 @@
-const Company = require("./company.model");
+const mongoose = require("mongoose");
+const Company = require("./company.model"); // ✅ MODEL
 const User = require("../users/user.model");
-const Invite = require("../invites/invite.model");
-
 const bcrypt = require("bcrypt");
-const isValidObjectId = require("../../utils/validateObjectId");
-const { generateTempPassword } = require("../../utils/password");
-const { sendWorkspaceEmail } = require("../../utils/mailer");
+const { generateTempPassword, generateStrongPassword } = require("../../utils/password");
+const { sendWorkspaceEmail, sendAdminWelcomeEmail } = require("../../utils/mailer");
 
-/* STEP 1 — create company */
 exports.createCompany = async (data) => {
-  const { name, slug, country, timezone, currency } = data;
+  const { name, slug, country, timezone, currency, customUrl, industryType } = data;
 
   if (!name || !slug) {
     throw new Error("name and slug are required");
   }
 
-  const exists = await Company.findOne({ slug });
-  if (exists) throw new Error("company slug already exists");
+  // Auto-generate customUrl if not provided
+  let finalCustomUrl = customUrl || `${slug}.qcs.com`;
 
-   return await Company.create({
-    name: data.companyName,
-    slug: data.slug,
-    customUrl: data.customUrl,
-    industryType: data.industryType,
-    country: data.country,
-    timezone: data.timezone,
-    currency: data.currency
+  // Check if slug exists
+  const slugExists = await Company.findOne({ slug });
+  if (slugExists) throw new Error("company slug already exists");
+
+  // Ensure customUrl is unique
+  let i = 1;
+  while (await Company.findOne({ customUrl: finalCustomUrl })) {
+    finalCustomUrl = `${slug}-${i}.qcs.com`;
+    i++;
+  }
+
+  // Create the company
+  return await Company.create({
+    name,
+    slug,
+    customUrl: finalCustomUrl,
+    industryType,
+    country,
+    timezone,
+    currency
   });
 };
 
+
+// CREATE COMPANY ADMIN
 exports.createCompanyAdmin = async (companyId, data) => {
   // 1️⃣ validate companyId
-  if (!isValidObjectId(companyId)) {
+  if (!mongoose.Types.ObjectId.isValid(companyId)) {
     throw new Error("invalid company id");
   }
 
   const company = await Company.findById(companyId);
-  if (!company) {
-    throw new Error("company not found");
-  }
+  if (!company) throw new Error("company not found");
 
   // 2️⃣ prevent duplicate admin
   if (company.adminId) {
@@ -47,7 +56,6 @@ exports.createCompanyAdmin = async (companyId, data) => {
 
   // 3️⃣ extract payload
   const { fullName, email, contact, role } = data;
-
   if (!fullName || !email || !role) {
     throw new Error("fullName, email and role are required");
   }
@@ -67,7 +75,7 @@ exports.createCompanyAdmin = async (companyId, data) => {
     name: fullName,
     email,
     contact,
-    role, // COMPANY_ADMIN
+    role,
     companyId: company._id,
     password: hashedPassword,
     mustChangePassword: true
@@ -77,7 +85,7 @@ exports.createCompanyAdmin = async (companyId, data) => {
   company.adminId = admin._id;
   await company.save();
 
-  // 8️⃣ send email IMMEDIATELY
+  // 8️⃣ send welcome email
   await sendAdminWelcomeEmail({
     to: admin.email,
     name: admin.name,
@@ -85,13 +93,12 @@ exports.createCompanyAdmin = async (companyId, data) => {
     tempPassword
   });
 
-  // 9️⃣ return
   return { admin };
 };
 
-
+// SETUP WORKSPACE
 exports.setupWorkspace = async (companyId, data) => {
-  if (!isValidObjectId(companyId)) {
+  if (!mongoose.Types.ObjectId.isValid(companyId)) {
     throw new Error("invalid company id");
   }
 
@@ -102,19 +109,20 @@ exports.setupWorkspace = async (companyId, data) => {
     throw new Error("company admin not created");
   }
 
+  // Auto-generate workspace URL
   const companyUrl = `${company.slug}.qcs.com`;
 
   company.workspace = {
     ...data,
     companyUrl
   };
-
   company.status = "ACTIVE";
   await company.save();
 
   const admin = await User.findById(company.adminId);
   if (!admin) throw new Error("admin not found");
-console.log(admin,"----------");
+
+  // Generate new temp password for workspace email
   const tempPassword = generateTempPassword();
   const hashed = await bcrypt.hash(tempPassword, 10);
 
@@ -122,6 +130,7 @@ console.log(admin,"----------");
   admin.mustChangePassword = true;
   await admin.save();
 
+  // Send workspace email
   await sendWorkspaceEmail({
     to: admin.email,
     companyName: company.name,

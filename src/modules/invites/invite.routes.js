@@ -1,9 +1,13 @@
 const router = require("express").Router();
-const auth = require("../../middlewares/auth.middleware");
 const controller = require("./invite.controller");
+const inviteAuth = require("../../middlewares/inviteAuth.middleware");
 
-router.post("/send-setup-link", auth, controller.sendSetupLink);
-router.get("/validate-invite", controller.validateInvite);
+router.post("/send-setup-link", controller.sendSetupLink);
+router.post("/validate-otp", controller.validateOtp);
 
+// ✅ these require invite token
+router.post("/company-setup", inviteAuth, controller.createCompanyFromInvite);
+router.post("/admin-setup", inviteAuth, controller.createAdminFromInvite);
+router.post("/workspace-setup", inviteAuth, controller.setupWorkspaceFromInvite);
 
 module.exports = router;

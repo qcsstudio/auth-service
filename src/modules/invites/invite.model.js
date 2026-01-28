@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const inviteSchema = new mongoose.Schema(
   {
     email: { type: String, required: true },
+
     role: {
       type: String,
       enum: ["COMPANY_ADMIN"],
@@ -15,7 +16,11 @@ const inviteSchema = new mongoose.Schema(
 
     token: { type: String, required: true, unique: true },
 
-    used: { type: Boolean, default: false },
+    otp: { type: String, required: true },
+
+    otpVerified: { type: Boolean, default: false }, // ✅ ADD THIS
+
+used: { type: Boolean, default: false }, 
 
     companyId: {
       type: mongoose.Schema.Types.ObjectId,
