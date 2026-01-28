@@ -49,41 +49,25 @@ exports.sendWorkspaceEmail = async ({
     `
   });
 };
-
-exports.sendInviteEmail = async ({ to, setupUrl, otp }) => {
+exports.sendInviteEmail = async ({ to, setupUrl, otp, token }) => {
   const transporter = getTransporter();
 
   await transporter.sendMail({
     from: `"QCS" <${process.env.SMTP_USER}>`,
     to,
-    subject: "Complete Your Organization Setup",
+    subject: "Complete Your Company Setup",
     html: `
-      <h3>You are invited to setup your organization</h3>
-      <p><b>OTP:</b> ${otp}</p>
-      <p>Open the link below to continue:</p>
+      <h3>Company Setup Invitation</h3>
+
+      <p><b>Setup URL:</b></p>
       <a href="${setupUrl}">${setupUrl}</a>
-      <p>This OTP will expire.</p>
-    `
-  });
-};
 
+      <p><b>OTP:</b> ${otp}</p>
 
+      <p><b>Invite Token:</b></p>
+      <p style="word-break: break-all;">${token}</p>
 
-exports.sendAdminWelcomeEmail = async ({ to, name, companyUrl, tempPassword }) => {
-  const transporter = getTransporter();
-
-  await transporter.sendMail({
-    from: `"QCS" <${process.env.SMTP_USER}>`,
-    to,
-    subject: "Welcome to Your Company",
-    html: `
-      <h3>Hello ${name}</h3>
-      <p>You have been added as an admin to your company.</p>
-
-      <p><b>Company URL:</b> ${companyUrl}</p>
-      <p><b>Temporary Password:</b> ${tempPassword}</p>
-
-      <p>Please login and change your password immediately.</p>
+      <p>This link and OTP will expire as scheduled.</p>
     `
   });
 };

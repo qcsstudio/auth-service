@@ -26,25 +26,24 @@ exports.sendSetupLink = async (req, res) => {
       otp
     });
 
-    // 👇 ONLY org-setup URL
     const setupUrl = `https://qcshrms.vercel.app/org-setup`;
 
+    // ✅ send ALL THREE in email
     await sendInviteEmail({
       to: email,
       setupUrl,
-      otp
+      otp,
+      token
     });
 
-    // 👇 token sent ONLY in response
     res.json({
-      message: "setup link sent",
-      token,
-      inviteId: invite._id
+      message: "setup link sent"
     });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
+
  
 
 exports.validateOtp = async (req, res) => {
