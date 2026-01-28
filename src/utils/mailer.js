@@ -56,16 +56,17 @@ exports.sendInviteEmail = async ({ to, setupUrl, otp }) => {
   await transporter.sendMail({
     from: `"QCS" <${process.env.SMTP_USER}>`,
     to,
-    subject: "Complete Your Company Setup",
+    subject: "Complete Your Organization Setup",
     html: `
-      <h3>You are invited to setup your workspace</h3>
-      <p>Your OTP: <b>${otp}</b></p>
-      <p>Click the link below to continue:</p>
+      <h3>You are invited to setup your organization</h3>
+      <p><b>OTP:</b> ${otp}</p>
+      <p>Open the link below to continue:</p>
       <a href="${setupUrl}">${setupUrl}</a>
-      <p>This link will expire.</p>
+      <p>This OTP will expire.</p>
     `
   });
 };
+
 
 
 exports.sendAdminWelcomeEmail = async ({ to, name, companyUrl, tempPassword }) => {

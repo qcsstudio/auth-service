@@ -9,7 +9,7 @@ const User = require("../users/user.model"); // For creating admin
 exports.sendSetupLink = async (req, res) => {
   try {
     const { email, role, trial, linkExpiry } = req.body;
-console.log("------------------")
+
     if (!email || !linkExpiry) {
       return res.status(400).json({ message: "email and expiry required" });
     }
@@ -26,7 +26,8 @@ console.log("------------------")
       otp
     });
 
-    const setupUrl = `${process.env.FRONTEND_URL}/invite?token=${token}`;
+    // 👇 ONLY org-setup URL
+    const setupUrl = `https://qcshrms.vercel.app/org-setup`;
 
     await sendInviteEmail({
       to: email,
@@ -34,15 +35,17 @@ console.log("------------------")
       otp
     });
 
+    // 👇 token sent ONLY in response
     res.json({
-      message: "setup link sent with OTP",
+      message: "setup link sent",
+      token,
       inviteId: invite._id
     });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
-
+ 
 
 exports.validateOtp = async (req, res) => {
   try {
