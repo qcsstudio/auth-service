@@ -126,7 +126,7 @@ exports.createAdminFromInvite = async (req, res) => {
       password: req.body.password
     };
 
-    const result = await CompanyService.createCompanyAdmin(
+    const result = await CompanyService.createCompanyAdminOfInvite(
       invite.companyId,
       adminPayload
     );

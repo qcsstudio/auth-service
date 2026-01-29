@@ -3,7 +3,7 @@ const Company = require("./company.model"); // ✅ MODEL
 const User = require("../users/user.model");
 const bcrypt = require("bcrypt");
 const { generateTempPassword, generateStrongPassword } = require("../../utils/password");
-const { sendWorkspaceEmail, sendAdminWelcomeEmail } = require("../../utils/mailer");
+const { sendWorkspaceEmail, sendWorkspaceEmail2 } = require("../../utils/mailer");
 
 exports.createCompany = async (data) => {
   const { name, slug, country, timezone, currency, customUrl, industryType } = data;
@@ -88,6 +88,65 @@ exports.createCompanyAdmin = async (companyId, data) => {
 
   // 8️⃣ send welcome email
   await sendWorkspaceEmail({
+    to: admin.email,
+    companyName: company.name,
+    companyUrl,
+    username: admin.email,
+    password: tempPassword
+  });
+
+  return { admin };
+};
+
+// CREATE COMPANY ADMIN
+exports.createCompanyAdminOfInvite = async (companyId, data) => {
+  // 1️⃣ validate companyId
+  if (!mongoose.Types.ObjectId.isValid(companyId)) {
+    throw new Error("invalid company id");
+  }
+
+  const company = await Company.findById(companyId);
+  if (!company) throw new Error("company not found");
+  const companyUrl = `${company.slug}.qcs.com`;
+
+  // 2️⃣ prevent duplicate admin
+  if (company.adminId) {
+    throw new Error("admin already exists");
+  }
+
+  // 3️⃣ extract payload
+  const { fullName, email, contact, role } = data;
+  if (!fullName || !email || !role) {
+    throw new Error("fullName, email and role are required");
+  }
+
+  // 4️⃣ check email uniqueness (global)
+  const emailExists = await User.findOne({ email });
+  if (emailExists) {
+    throw new Error("email already in use");
+  }
+
+  // 5️⃣ generate temp password
+  const tempPassword = generateStrongPassword();
+  const hashedPassword = await bcrypt.hash(tempPassword, 10);
+
+  // 6️⃣ create admin
+  const admin = await User.create({
+    name: fullName,
+    email,
+    contact,
+    role,
+    companyId: company._id,
+    password: hashedPassword,
+    mustChangePassword: true
+  });
+
+  // 7️⃣ attach admin to company
+  company.adminId = admin._id;
+  await company.save();
+
+  // 8️⃣ send welcome email
+  await sendWorkspaceEmail2({
     to: admin.email,
     companyName: company.name,
     companyUrl,

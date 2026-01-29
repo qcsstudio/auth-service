@@ -45,7 +45,6 @@ exports.sendWorkspaceEmail = async ({
       <h3>Welcome to ${companyName}</h3>
       <p>Your workspace setup is complete.</p>
 
-      <p><b>Login URL:</b> <a href="${loginUrl}">${loginUrl}</a></p>
       <p><b>Company Code:</b> ${companySlug}</p>
 
       <p><b>Email:</b> ${username}</p>
@@ -56,6 +55,36 @@ exports.sendWorkspaceEmail = async ({
   });
 };
 
+exports.sendWorkspaceEmail2 = async ({
+  to,
+  companyName,
+  companyUrl,
+  companySlug,
+  username,
+  password
+}) => {
+  const transporter = getTransporter();
+
+  const loginUrl = `https://qcshrms.vercel.app/`;
+
+  await transporter.sendMail({
+    from: `"QCS" <${process.env.SMTP_USER}>`,
+    to,
+    subject: "Your Workspace Is Ready",
+    html: `
+      <h3>Welcome to ${companyName}</h3>
+      <p>Your workspace setup is complete.</p>
+
+      <p><b>Login URL:</b> <a href="${loginUrl}">${loginUrl}</a></p>
+      <p><b>Company Code:</b> ${companySlug}</p>
+
+      <p><b>Email:</b> ${username}</p>
+      <p><b>Temporary Password:</b> ${password}</p>
+
+      <p>Please login and change your password immediately.</p>
+    `
+  });
+};
 
 
 exports.sendInviteEmail = async ({ to, setupUrl, otp, token }) => {
