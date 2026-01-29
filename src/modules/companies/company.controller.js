@@ -64,3 +64,69 @@ exports.setupWorkspace = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
+
+// exports.bulkUploadCompanyDetails = async (req, res) => {
+//   try {
+//      if (!req.file) {
+//       return res.status(400).json({ message: "Excel file required" });
+//     }
+
+//     const result = await service.bulkUploadCompanyDetails(req.file.path);
+
+//     res.status(200).json({
+//       total: result.total,
+//       success: result.success.length,
+//       failed: result.failed.length,
+//       failedRows: result.failed
+//     });
+//   } catch (error) {
+//     res.status(400).json({ message: error.message });
+//   }
+// };
+
+
+exports.addEmployee = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const employee = await service.addEmployee(companyId, req.body);
+
+    res.status(201).json({
+      message: "employee added successfully",
+      employeeId: employee._id,
+      data: employee
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+exports.bulkUploadEmployees = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ message: "excel file is required" });
+    }
+
+    const result = await service.bulkUploadEmployees(companyId, req.file);
+
+    const status = result.failureCount === 0 ? 200 : 206; // 206 = Partial Content
+
+    res.status(status).json({
+      message:
+        result.failureCount === 0
+          ? `imported ${result.successCount} employees successfully`
+          : `imported ${result.successCount} employees, ${result.failureCount} failed`,
+      data: {
+        uploadBatch: result.uploadBatch,
+        totalRows: result.totalRows,
+        successCount: result.successCount,
+        failureCount: result.failureCount,
+        importedEmployees: result.importedEmployees
+      },
+      ...(result.errors.length > 0 && { errors: result.errors })
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
