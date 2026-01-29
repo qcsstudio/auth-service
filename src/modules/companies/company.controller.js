@@ -3,7 +3,17 @@ const service = require("./company.service");
 /* STEP 1 — create company */
 exports.createCompany = async (req, res) => {
   try {
-    const company = await service.createCompany(req.body);
+    const payload = {
+      name: req.body.companyName,   // 👈 mapping
+      slug: req.body.slug,
+      customUrl: req.body.customUrl,
+      industryType: req.body.industryType,
+      country: req.body.country,
+      timezone: req.body.timezone,
+      currency: req.body.currency
+    };
+
+    const company = await service.createCompany(payload);
 
     res.status(201).json({
       message: "company created",
@@ -13,6 +23,7 @@ exports.createCompany = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
+
 
 /* STEP 2 — create company admin */
 exports.createCompanyAdmin = async (req, res) => {
