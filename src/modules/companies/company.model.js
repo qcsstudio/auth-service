@@ -11,7 +11,7 @@ const companySchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ["DRAFT", "ACTIVE", "SUSPENDED"],
-    default: "DRAFT"
+    default: "ACTIVE"
   },
   adminId: {
     type: mongoose.Schema.Types.ObjectId,

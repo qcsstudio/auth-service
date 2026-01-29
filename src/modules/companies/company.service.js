@@ -48,6 +48,7 @@ exports.createCompanyAdmin = async (companyId, data) => {
 
   const company = await Company.findById(companyId);
   if (!company) throw new Error("company not found");
+  const companyUrl = `${company.slug}.qcs.com`;
 
   // 2️⃣ prevent duplicate admin
   if (company.adminId) {
@@ -86,11 +87,12 @@ exports.createCompanyAdmin = async (companyId, data) => {
   await company.save();
 
   // 8️⃣ send welcome email
-  await sendAdminWelcomeEmail({
+  await sendWorkspaceEmail({
     to: admin.email,
-    name: admin.name,
-    companyUrl: company.customUrl,
-    tempPassword
+    companyName: company.name,
+    companyUrl,
+    username: admin.email,
+    password: tempPassword
   });
 
   return { admin };
