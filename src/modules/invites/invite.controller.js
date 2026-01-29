@@ -73,80 +73,97 @@ exports.validateOtp = async (req, res) => {
 
 
 
+/* ======================================================
+   3️⃣ CREATE COMPANY (SAME PAYLOAD AS SUPER ADMIN)
+====================================================== */
 exports.createCompanyFromInvite = async (req, res) => {
   try {
-    const { company } = req.body;
-    const invite = req.invite; // from middleware
+    const invite = req.invite;
 
-    if (!company || !company.name || !company.slug) {
-      return res.status(400).json({ message: "company name and slug required" });
-    }
+    if (!invite.otpVerified)
+      return res.status(403).json({ message: "OTP not verified" });
 
-    // create company
-    const createdCompany = await CompanyService.createCompany(company);
+    // 🔁 SAME payload as super admin
+    const companyPayload = {
+      name: req.body.companyName,
+      slug: req.body.slug,
+      customUrl: req.body.customUrl,
+      industryType: req.body.industryType,
+      country: req.body.country,
+      timezone: req.body.timezone,
+      currency: req.body.currency
+    };
 
-    // attach companyId to invite
-    invite.companyId = createdCompany._id;
+    const company = await CompanyService.createCompany(companyPayload);
+
+    invite.companyId = company._id;
     await invite.save();
 
     res.status(201).json({
       message: "company created",
-      companyId: createdCompany._id
+      companyId: company._id
     });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: err.message });
   }
 };
 
-
-
+/* ======================================================
+   4️⃣ CREATE ADMIN (SAME PAYLOAD AS SUPER ADMIN)
+====================================================== */
 exports.createAdminFromInvite = async (req, res) => {
   try {
-    const { fullName, email, contact, role, password } = req.body;
     const invite = req.invite;
+    if (!invite.companyId)
+      return res.status(400).json({ message: "Company not created yet" });
 
-    if (!invite.companyId) return res.status(400).json({ message: "Company not created yet" });
+    // SAME payload as super admin (+ password)
+    const adminPayload = {
+      fullName: req.body.fullName,
+      email: req.body.email,
+      contact: req.body.contact,
+      role: req.body.role,
+      password: req.body.password
+    };
 
-    if (!fullName || !email || !role || !password) {
-      return res.status(400).json({ message: "fullName, email, role and password required" });
-    }
-
-    const adminData = { fullName, email, contact, role, password };
-
-    const result = await CompanyService.createCompanyAdmin(invite.companyId, adminData);
+    const result = await CompanyService.createCompanyAdmin(
+      invite.companyId,
+      adminPayload
+    );
 
     res.status(201).json({
       message: "admin created",
       adminId: result.admin._id
     });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: err.message });
   }
 };
 
-
+/* ======================================================
+   5️⃣ SETUP WORKSPACE (SAME PAYLOAD AS SUPER ADMIN)
+====================================================== */
 exports.setupWorkspaceFromInvite = async (req, res) => {
   try {
-    const workspaceData = req.body;
     const invite = req.invite;
+    if (!invite.companyId)
+      return res.status(400).json({ message: "Company not created yet" });
 
-    if (!invite.companyId) return res.status(400).json({ message: "Company not created yet" });
+    const company = await CompanyService.setupWorkspace(
+      invite.companyId,
+      req.body
+    );
 
-    const company = await CompanyService.setupWorkspace(invite.companyId, workspaceData);
-
-    // mark invite as used
+    // mark invite used after final step
     invite.used = true;
     await invite.save();
 
-    res.status(200).json({
+    res.json({
       message: "workspace setup completed",
       companyId: company._id,
       companyUrl: company.workspace.companyUrl
     });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: err.message });
   }
 };
