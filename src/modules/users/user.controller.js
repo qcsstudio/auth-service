@@ -4,34 +4,44 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const service = require("./user.service");
 
-
 exports.login = async (req, res) => {
   try {
-    const { email, password, companySlug } = req.body;
+    const { email, password } = req.body;
 
-    if (!email || !password || !companySlug) {
-      return res.status(400).json({ message: "email, password, and companySlug required" });
+    if (!email || !password) {
+      return res.status(400).json({
+        message: "email and password required"
+      });
     }
 
-    // 1️⃣ find company
-    const company = await Company.findOne({ slug: companySlug });
-    if (!company) return res.status(400).json({ message: "invalid company" });
-    if (company.status !== "ACTIVE") return res.status(400).json({ message: "company is not active" });
-
-    // 2️⃣ find user
+    // 1️⃣ find user first
     const user = await User.findOne({
       email,
-      companyId: company._id,
       role: "COMPANY_ADMIN"
     });
 
-    if (!user) return res.status(401).json({ message: "invalid credentials" });
+    if (!user) {
+      return res.status(401).json({ message: "invalid credentials" });
+    }
+
+    // 2️⃣ find company using user.companyId
+    const company = await Company.findById(user.companyId);
+
+    if (!company) {
+      return res.status(400).json({ message: "company not found" });
+    }
+
+    if (company.status !== "ACTIVE") {
+      return res.status(400).json({ message: "company is not active" });
+    }
 
     // 3️⃣ check password
     const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ message: "invalid credentials" });
+    if (!match) {
+      return res.status(401).json({ message: "invalid credentials" });
+    }
 
-    // 4️⃣ force password change case
+    // 4️⃣ force password change
     if (user.mustChangePassword) {
       return res.status(200).json({
         forcePasswordChange: true,
@@ -43,7 +53,7 @@ exports.login = async (req, res) => {
     const token = jwt.sign(
       {
         userId: user._id,
-        role: user.role,
+        role: "ADMIN",
         companyId: company._id
       },
       process.env.JWT_SECRET,
@@ -52,6 +62,7 @@ exports.login = async (req, res) => {
 
     res.json({
       message: "login success",
+      role: "ADMIN",
       token
     });
 
@@ -60,6 +71,7 @@ exports.login = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
 
 
 /* CHANGE PASSWORD */

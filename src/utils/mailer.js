@@ -24,14 +24,18 @@ function getTransporter() {
   return transporter;
 }
 
+
 exports.sendWorkspaceEmail = async ({
   to,
   companyName,
   companyUrl,
+  companySlug,
   username,
   password
 }) => {
   const transporter = getTransporter();
+
+  const loginUrl = `https://qcshrms.vercel.app/`;
 
   await transporter.sendMail({
     from: `"QCS" <${process.env.SMTP_USER}>`,
@@ -41,14 +45,19 @@ exports.sendWorkspaceEmail = async ({
       <h3>Welcome to ${companyName}</h3>
       <p>Your workspace setup is complete.</p>
 
-      <p><b>Company URL:</b> ${companyUrl}</p>
-      <p><b>Username:</b> ${username}</p>
+      <p><b>Login URL:</b> <a href="${loginUrl}">${loginUrl}</a></p>
+      <p><b>Company Code:</b> ${companySlug}</p>
+
+      <p><b>Email:</b> ${username}</p>
       <p><b>Temporary Password:</b> ${password}</p>
 
       <p>Please login and change your password immediately.</p>
     `
   });
 };
+
+
+
 exports.sendInviteEmail = async ({ to, setupUrl, otp, token }) => {
   const transporter = getTransporter();
 
@@ -65,6 +74,31 @@ exports.sendInviteEmail = async ({ to, setupUrl, otp, token }) => {
       </p>
 
       <p><b>OTP:</b> ${otp}</p>
+    `
+  });
+};
+
+exports.sendAdminWelcomeEmail = async ({
+  to,
+  name,
+  companyUrl,
+  tempPassword
+}) => {
+  const transporter = getTransporter();
+
+  await transporter.sendMail({
+    from: `"QCS" <${process.env.SMTP_USER}>`,
+    to,
+    subject: "Admin Account Created",
+    html: `
+      <h3>Hello ${name}</h3>
+      <p>You have been added as a Company Admin.</p>
+
+      <p><b>Company URL:</b> ${companyUrl}</p>
+      <p><b>Email:</b> ${to}</p>
+      <p><b>Temporary Password:</b> ${tempPassword}</p>
+
+      <p>Please login and change your password immediately.</p>
     `
   });
 };
