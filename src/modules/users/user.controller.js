@@ -1,4 +1,4 @@
-const User = require("./user.model");
+const User = require("./models/user.model");
 const Company = require("../companies/company.model");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
@@ -96,5 +96,45 @@ exports.changePassword = async (req, res) => {
 
   } catch (err) {
     res.status(400).json({ message: err.message });
+  }
+};
+
+exports.getCompanyDashboardData = async (req, res) => {
+  try {
+    const companyId = req.user.companyId;
+
+    const [
+      totalEmployees,
+      attendance,
+      pendingLeaves,
+      hiring,
+      upcomingEvents
+    ] = await Promise.all([
+      service.totalActiveEmployees(companyId),
+      service.todayAttendanceMetrics(companyId),
+      service.pendingLeaveRequests(companyId),
+      service.weeklyHiringMetrics(companyId),
+      service.upcomingEventsService(companyId)
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        totalEmployees,
+        presentToday: attendance.presentToday,
+        absentToday: attendance.absentToday,
+        pendingLeaveRequests: pendingLeaves.length,
+        weeklyInterviews: hiring.weeklyInterviews,
+        newApplications: hiring.newApplications,
+        upcomingEvents,
+        leaveRequests: pendingLeaves
+      }
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 };
