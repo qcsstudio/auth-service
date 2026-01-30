@@ -40,6 +40,8 @@ exports.sendAdminWelcomeEmail = async ({
 
   const loginUrl = `https://${companySlug}.${process.env.BASE_DOMAIN}/login`;
 
+  console.log(process.env.BASE_DOMAIN)
+
   await transporter.sendMail({
     from: `"QCS" <${process.env.SMTP_USER}>`,
     to,

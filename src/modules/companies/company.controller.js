@@ -64,3 +64,41 @@ exports.setupWorkspace = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
+
+
+exports.uploadBrandLogo = async (req, res) => {
+  try {
+    const company = await Company.findByIdAndUpdate(
+      req.user.companyId,
+      { "branding.logo": req.file.location },
+      { new: true }
+    );
+
+    res.json({
+      message: "Brand logo uploaded",
+      logo: company.branding.logo,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * Upload Login Image
+ */
+exports.uploadLoginImage = async (req, res) => {
+  try {
+    const company = await Company.findByIdAndUpdate(
+      req.user.companyId,
+      { "branding.loginImage": req.file.location },
+      { new: true }
+    );
+
+    res.json({
+      message: "Login image uploaded",
+      loginImage: company.branding.loginImage,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
