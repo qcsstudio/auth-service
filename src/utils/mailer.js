@@ -46,7 +46,6 @@ exports.sendAdminWelcomeEmail = async ({
     subject: "Your Workspace Is Ready",
     html: `
       <h3>Welcome to ${companyName}</h3>
-      <p>Your workspace setup is complete.</p>
 
       <p>
         <b>Login URL:</b><br/>
