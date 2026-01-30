@@ -3,7 +3,7 @@ const Company = require("./company.model"); // ✅ MODEL
 const User = require("../users/user.model");
 const bcrypt = require("bcrypt");
 const { generateTempPassword, generateStrongPassword } = require("../../utils/password");
-const { sendWorkspaceEmail, sendWorkspaceEmail2 } = require("../../utils/mailer");
+const { sendWorkspaceEmail, sendWorkspaceEmail2, sendAdminWelcomeEmail } = require("../../utils/mailer");
 
 exports.createCompany = async (data) => {
   const { name, slug, country, timezone, currency, customUrl, industryType } = data;
@@ -48,7 +48,6 @@ exports.createCompanyAdmin = async (companyId, data) => {
 
   const company = await Company.findById(companyId);
   if (!company) throw new Error("company not found");
-  const companyUrl = `${company.slug}.qcs.com`;
 
   // 2️⃣ prevent duplicate admin
   if (company.adminId) {
@@ -87,13 +86,13 @@ exports.createCompanyAdmin = async (companyId, data) => {
   await company.save();
 
   // 8️⃣ send welcome email
-  await sendWorkspaceEmail({
-    to: admin.email,
-    companyName: company.name,
-    companyUrl,
-    username: admin.email,
-    password: tempPassword
-  });
+ await sendAdminWelcomeEmail({
+  to: admin.email,
+  companyName: company.name,
+  companySlug: company.slug,   // 🔥 THIS WAS MISSING
+  username: admin.email,
+  password: tempPassword
+});
 
   return { admin };
 };

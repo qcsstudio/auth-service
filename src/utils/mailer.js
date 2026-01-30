@@ -25,17 +25,20 @@ function getTransporter() {
 }
 
 
-exports.sendWorkspaceEmail = async ({
+exports.sendAdminWelcomeEmail = async ({
   to,
   companyName,
-  companyUrl,
   companySlug,
   username,
   password
 }) => {
+  if (!companySlug) {
+    throw new Error("companySlug is required to send login URL");
+  }
+
   const transporter = getTransporter();
 
-  const loginUrl = `https://qcshrms.vercel.app/`;
+  const loginUrl = `https://${companySlug}.${process.env.BASE_DOMAIN}/login`;
 
   await transporter.sendMail({
     from: `"QCS" <${process.env.SMTP_USER}>`,
@@ -45,7 +48,10 @@ exports.sendWorkspaceEmail = async ({
       <h3>Welcome to ${companyName}</h3>
       <p>Your workspace setup is complete.</p>
 
-      <p><b>Company Code:</b> ${companySlug}</p>
+      <p>
+        <b>Login URL:</b><br/>
+        <a href="${loginUrl}">${loginUrl}</a>
+      </p>
 
       <p><b>Email:</b> ${username}</p>
       <p><b>Temporary Password:</b> ${password}</p>
@@ -54,6 +60,7 @@ exports.sendWorkspaceEmail = async ({
     `
   });
 };
+
 
 exports.sendWorkspaceEmail2 = async ({
   to,
@@ -107,27 +114,27 @@ exports.sendInviteEmail = async ({ to, setupUrl, otp, token }) => {
   });
 };
 
-exports.sendAdminWelcomeEmail = async ({
-  to,
-  name,
-  companyUrl,
-  tempPassword
-}) => {
-  const transporter = getTransporter();
+// exports.sendAdminWelcomeEmail = async ({
+//   to,
+//   name,
+//   companyUrl,
+//   tempPassword
+// }) => {
+//   const transporter = getTransporter();
 
-  await transporter.sendMail({
-    from: `"QCS" <${process.env.SMTP_USER}>`,
-    to,
-    subject: "Admin Account Created",
-    html: `
-      <h3>Hello ${name}</h3>
-      <p>You have been added as a Company Admin.</p>
+//   await transporter.sendMail({
+//     from: `"QCS" <${process.env.SMTP_USER}>`,
+//     to,
+//     subject: "Admin Account Created",
+//     html: `
+//       <h3>Hello ${name}</h3>
+//       <p>You have been added as a Company Admin.</p>
 
-      <p><b>Company URL:</b> ${companyUrl}</p>
-      <p><b>Email:</b> ${to}</p>
-      <p><b>Temporary Password:</b> ${tempPassword}</p>
+//       <p><b>Company URL:</b> ${companyUrl}</p>
+//       <p><b>Email:</b> ${to}</p>
+//       <p><b>Temporary Password:</b> ${tempPassword}</p>
 
-      <p>Please login and change your password immediately.</p>
-    `
-  });
-};
+//       <p>Please login and change your password immediately.</p>
+//     `
+//   });
+// };

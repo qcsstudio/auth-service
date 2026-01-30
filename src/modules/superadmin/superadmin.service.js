@@ -3,7 +3,11 @@ const jwt = require("../../config/jwt");
 const bcrypt = require("bcrypt");
 const companyModel = require("../companies/company.model");
 
-exports.login = async (email, password) => {
+
+const User = require("../users/user.model");
+
+// 🔐 SUPER ADMIN LOGIN
+exports.superAdminLogin = async (email, password) => {
   const admin = await SuperAdmin.findOne({ email });
   if (!admin) throw new Error("Invalid credentials");
 
@@ -15,8 +19,53 @@ exports.login = async (email, password) => {
     role: "SUPER_ADMIN"
   });
 
-  return { admin, token };
+  return { user: admin, token };
 };
+
+// 🔐 COMPANY ADMIN LOGIN (tenant aware)
+exports.companyAdminLogin = async (email, password, tenant) => {
+  const user = await User.findOne({
+    email,
+    companyId: tenant._id
+  });
+
+  if (!user) throw new Error("Invalid credentials");
+
+  const match = await bcrypt.compare(password, user.password);
+  if (!match) throw new Error("Invalid credentials");
+
+  if (user.mustChangePassword) {
+    return {
+      user,
+      forcePasswordChange: true,
+      token: null
+    };
+  }
+
+  const token = jwt.signToken({
+    id: user._id,
+    role: user.role,
+    companyId: tenant._id
+  });
+
+  return { user, token };
+};
+
+
+// exports.login = async (email, password) => {
+//   const admin = await SuperAdmin.findOne({ email });
+//   if (!admin) throw new Error("Invalid credentials");
+
+//   const match = await bcrypt.compare(password, admin.password);
+//   if (!match) throw new Error("Invalid credentials");
+
+//   const token = jwt.signToken({
+//     id: admin._id,
+//     role: "SUPER_ADMIN"
+//   });
+
+//   return { admin, token };
+// };
 
 exports.superAdminDashboardData = async (
   matchStage = {},

@@ -7,7 +7,7 @@ router.post("/validate-otp", controller.validateOtp);
 
 // ✅ these require invite token
 router.post("/company-setup", inviteAuth, controller.createCompanyFromInvite);
-router.post("/admin-setup", inviteAuth, controller.createAdminFromInvite);
-router.post("/workspace-setup", inviteAuth, controller.setupWorkspaceFromInvite);
+router.post("/:companyId/admin-setup", inviteAuth, controller.createAdminFromInvite);
+router.post("/:companyId/workspace-setup", inviteAuth, controller.setupWorkspaceFromInvite);
 
 module.exports = router;

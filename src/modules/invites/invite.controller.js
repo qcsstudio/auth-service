@@ -113,9 +113,17 @@ exports.createCompanyFromInvite = async (req, res) => {
 ====================================================== */
 exports.createAdminFromInvite = async (req, res) => {
   try {
-    const invite = req.invite;
-    if (!invite.companyId)
-      return res.status(400).json({ message: "Company not created yet" });
+    const { companyId } = req.params;
+    // const invite = req.invite;
+    // if (!invite.companyId)
+    //   return res.status(400).json({ message: "Company not created yet" });
+
+    // find email in invite if not exists in Invite give error
+    const verifyEmail = await Invite.findOne({ email: req.body.email });
+    if (!verifyEmail) {
+      return res.status(400).json({ message: "Please enter a valid email" });
+    }
+
 
     // SAME payload as super admin (+ password)
     const adminPayload = {
@@ -123,11 +131,10 @@ exports.createAdminFromInvite = async (req, res) => {
       email: req.body.email,
       contact: req.body.contact,
       role: req.body.role,
-      password: req.body.password
     };
 
     const result = await CompanyService.createCompanyAdminOfInvite(
-      invite.companyId,
+      companyId,
       adminPayload
     );
 
@@ -145,12 +152,13 @@ exports.createAdminFromInvite = async (req, res) => {
 ====================================================== */
 exports.setupWorkspaceFromInvite = async (req, res) => {
   try {
+    const { companyId } = req.params;
     const invite = req.invite;
-    if (!invite.companyId)
-      return res.status(400).json({ message: "Company not created yet" });
+    // if (!invite.companyId)
+    //   return res.status(400).json({ message: "Company not created yet" });
 
     const company = await CompanyService.setupWorkspace(
-      invite.companyId,
+      companyId,
       req.body
     );
 

@@ -47,6 +47,7 @@ app.get("/", (req, res) => {
 });
 
 /* ===================== ROUTES ===================== */
+app.use(require("./middlewares/tenant.middleware"));
 app.use("/auth/superadmin", require("./modules/superadmin/superadmin.routes"));
 app.use("/invites", require("./modules/invites/invite.routes"));
 app.use("/companies", require("./modules/companies/company.routes"));
