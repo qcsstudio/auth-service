@@ -38,13 +38,13 @@ exports.createCompanyAdmin = async (req, res) => {
 
     res.status(201).json({
       message: "admin created",
-      adminId: result.admin._id,
-      tempPassword: result.tempPassword
+      adminId: result.adminId
     });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
+
 
 /* STEP 3 — setup workspace */
 exports.setupWorkspace = async (req, res) => {
@@ -65,13 +65,31 @@ exports.setupWorkspace = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
-exports.uploadBrandLogo = async (req, res) => {
+exports.uploadCompanyBranding = async (req, res) => {
   try {
     const companyId = req.user?.companyId || req.params.companyId;
 
+    if (!req.files || (!req.files["brand-logo"] && !req.files["cover-image"])) {
+      return res.status(400).json({
+        message: "At least one image (brand-logo or cover-image) is required"
+      });
+    }
+
+    const updateData = {};
+
+    if (req.files["brand-logo"]) {
+      updateData["branding.logo"] =
+        req.files["brand-logo"][0].location;
+    }
+
+    if (req.files["cover-image"]) {
+      updateData["branding.loginImage"] =
+        req.files["cover-image"][0].location;
+    }
+
     const company = await Company.findByIdAndUpdate(
       companyId,
-      { "branding.logo": req.file.location },
+      { $set: updateData },
       { new: true, runValidators: true }
     );
 
@@ -79,34 +97,42 @@ exports.uploadBrandLogo = async (req, res) => {
       return res.status(404).json({ message: "Company not found" });
     }
 
-    res.json({
-      message: "Brand logo uploaded",
-      logo: company.branding?.logo || null,
+    res.status(200).json({
+      message: "Company branding updated",
+      branding: company.branding
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-exports.uploadLoginImage = async (req, res) => {
+
+exports.bulkUploadEmployees = async (req, res) => {
   try {
-    const companyId = req.user?.companyId || req.params.companyId;
+    const { companyId } = req.params;
 
-    const company = await Company.findByIdAndUpdate(
-      companyId,
-      { "branding.loginImage": req.file.location },
-      { new: true, runValidators: true }
-    );
-
-    if (!company) {
-      return res.status(404).json({ message: "Company not found" });
+    if (!req.file) {
+      return res.status(400).json({ message: "excel file is required" });
     }
 
-    res.json({
-      message: "Login image uploaded",
-      loginImage: company.branding?.loginImage || null,
+    const result = await service.bulkUploadEmployees(companyId, req.file);
+
+    const status = result.failureCount === 0 ? 200 : 206; // 206 = Partial Content
+
+    res.status(status).json({
+      message:
+        result.failureCount === 0
+          ? `imported ${result.successCount} employees successfully`
+          : `imported ${result.successCount} employees, ${result.failureCount} failed`,
+      data: {
+        totalRows: result.totalRows,
+        successCount: result.successCount,
+        failureCount: result.failureCount,
+        importedEmployees: result.importedEmployees
+      },
+      ...(result.errors.length > 0 && { errors: result.errors })
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(400).json({ message: err.message });
   }
 };

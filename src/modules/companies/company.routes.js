@@ -3,6 +3,7 @@ const auth = require("../../middlewares/auth.middleware");
 const controller = require("./company.controller");
 const { allowRoles } = require("../../middlewares/role.middleware");
 const uploadToS3 = require("../../middlewares/s3Upload");
+const { uploadExcel } = require("../../middlewares/upload.middleware");
 
 /* ===============================
    COMPANY CREATION
@@ -30,35 +31,35 @@ router.post(
   controller.setupWorkspace
 );
 
+router.post(
+  "/:companyId/bulk-upload-employees",
+  auth,
+  uploadExcel.single("file"),
+  controller.bulkUploadEmployees
+);
+
 
 /* ===============================
    BRANDING
 ================================ */
 
-// Upload brand logo
 router.post(
-  "/:companyId/branding/logo",
+  "/:companyId/company-brandlogoandimage",
   auth,
   allowRoles("SUPER_ADMIN", "COMPANY_ADMIN"),
   (req, res, next) => {
-    uploadToS3("brand-logo").single("file")(req, res, (err) => {
+    uploadToS3("company-branding").fields([
+      { name: "brand-logo", maxCount: 1 },
+      { name: "cover-image", maxCount: 1 }
+    ])(req, res, err => {
       if (err) {
-        console.error("Multer error:", err);
-        return res.status(400).json({ error: err.message });
+        return res.status(400).json({ message: err.message });
       }
       next();
     });
   },
-  controller.uploadBrandLogo
+  controller.uploadCompanyBranding
 );
 
-// Upload login image
-router.post(
-  "/:companyId/branding/login-image",
-  auth,
-  allowRoles("SUPER_ADMIN", "COMPANY_ADMIN"),
-  uploadToS3("login-image").single("file"),
-  controller.uploadLoginImage
-);
 
 module.exports = router;

@@ -3,23 +3,25 @@ const mongoose = require("mongoose");
 const userSchema = new mongoose.Schema(
   {
     name: String,
+
     email: {
       type: String,
       unique: true,
       required: true
     },
+
     contact: String,
+
     password: {
       type: String,
       required: true
     },
 
     role: {
-  type: String,
-  enum: ["SUPER_ADMIN", "COMPANY_ADMIN"],
-  required: true
-},
-
+      type: String,
+      enum: ["SUPER_ADMIN", "COMPANY_ADMIN"],
+      required: true
+    },
 
     companyId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -27,6 +29,17 @@ const userSchema = new mongoose.Schema(
     },
 
     mustChangePassword: {
+      type: Boolean,
+      default: false
+    },
+
+    // 🔥 ADD THESE
+    adminTempPassword: {
+      type: String,
+      select: false
+    },
+
+    isWelcomeEmailSent: {
       type: Boolean,
       default: false
     }
