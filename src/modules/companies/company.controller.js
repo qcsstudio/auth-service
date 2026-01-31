@@ -136,3 +136,40 @@ exports.bulkUploadEmployees = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
+
+
+exports.getCompanyBrandingBySlug = async (req, res) => {
+  try {
+    const { slug } = req.params;
+
+    if (!slug) {
+      return res.status(400).json({ message: "Company slug is required" });
+    }
+
+    const company = await Company.findOne(
+      { slug, status: "ACTIVE" },
+      {
+        name: 1,
+        slug: 1,
+        branding: 1,
+        workspace: 1
+      }
+    );
+
+    if (!company) {
+      return res.status(404).json({ message: "Company not found" });
+    }
+
+    res.status(200).json({
+      company: {
+        name: company.name,
+        slug: company.slug,
+        logo: company.branding?.logo || null,
+        loginImage: company.branding?.loginImage || null,
+        workspace: company.workspace
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

@@ -61,5 +61,6 @@ router.post(
   controller.uploadCompanyBranding
 );
 
+router.get("/company/branding/:slug", controller.getCompanyBrandingBySlug);
 
 module.exports = router;
