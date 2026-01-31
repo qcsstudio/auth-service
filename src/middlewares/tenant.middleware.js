@@ -1,24 +1,40 @@
 const Company = require("../modules/companies/company.model");
 
 module.exports = async (req, res, next) => {
-  const host = req.headers.host; // xyz.qcss.com
-  if (!host) {
-    return res.status(400).json({ message: "Host header missing" });
+  try {
+    const host = req.headers.host; // xyz.qcs.com | localhost:4000
+    if (!host) {
+      req.tenant = null;
+      return next();
+    }
+
+    // remove port if exists
+    const cleanHost = host.split(":")[0];
+    const parts = cleanHost.split(".");
+
+    // ROOT DOMAIN → superadmin / public
+    if (parts.length < 3) {
+      req.tenant = null;
+      return next();
+    }
+
+    const subdomain = parts[0];
+
+    const company = await Company.findOne({ slug: subdomain });
+
+    if (!company) {
+      return res.status(404).json({ message: "Workspace not found" });
+    }
+
+    // 🔥 STORE ONLY WHAT YOU NEED
+    req.tenant = {
+      companyId: company._id,
+      slug: company.slug,
+      status: company.status
+    };
+
+    next();
+  } catch (err) {
+    next(err);
   }
-
-  const subdomain = host.split(".")[0];
-
-  // allow root domain (superadmin / marketing site)
-  if (subdomain === "qcss" || subdomain === "www") {
-    req.tenant = null;
-    return next();
-  }
-
-  const company = await Company.findOne({ slug: subdomain });
-//   if (!company) {
-//     return res.status(404).json({ message: "Workspace not found" });
-//   }
-
-  req.tenant = company; // 🔥 THIS IS YOUR TENANT CONTEXT
-  next();
 };

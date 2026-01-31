@@ -1,4 +1,5 @@
 const service = require("./company.service");
+const Company = require("./company.model");
 
 /* STEP 1 — create company */
 exports.createCompany = async (req, res) => {
@@ -64,39 +65,46 @@ exports.setupWorkspace = async (req, res) => {
     res.status(400).json({ message: err.message });
   }
 };
-
-
 exports.uploadBrandLogo = async (req, res) => {
   try {
+    const companyId = req.user?.companyId || req.params.companyId;
+
     const company = await Company.findByIdAndUpdate(
-      req.user.companyId,
+      companyId,
       { "branding.logo": req.file.location },
-      { new: true }
+      { new: true, runValidators: true }
     );
+
+    if (!company) {
+      return res.status(404).json({ message: "Company not found" });
+    }
 
     res.json({
       message: "Brand logo uploaded",
-      logo: company.branding.logo,
+      logo: company.branding?.logo || null,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-/**
- * Upload Login Image
- */
 exports.uploadLoginImage = async (req, res) => {
   try {
+    const companyId = req.user?.companyId || req.params.companyId;
+
     const company = await Company.findByIdAndUpdate(
-      req.user.companyId,
+      companyId,
       { "branding.loginImage": req.file.location },
-      { new: true }
+      { new: true, runValidators: true }
     );
+
+    if (!company) {
+      return res.status(404).json({ message: "Company not found" });
+    }
 
     res.json({
       message: "Login image uploaded",
-      loginImage: company.branding.loginImage,
+      loginImage: company.branding?.loginImage || null,
     });
   } catch (err) {
     res.status(500).json({ message: err.message });

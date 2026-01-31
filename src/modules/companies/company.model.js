@@ -18,6 +18,10 @@ const companySchema = new mongoose.Schema({
     ref: "User",
     default: null
   },
+  branding: {
+    logo: String,
+    loginImage: String
+  },
   workspace: {
     trial: Boolean,
     whiteLabel: Boolean,
