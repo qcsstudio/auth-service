@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+
 const app = express();
 
 /* ===================== ALLOWED ORIGINS ===================== */
@@ -8,15 +9,17 @@ const allowedOrigins = [
   "http://localhost:5174",
   "https://qcshrms.vercel.app",
   "https://hrms.qcsstudio.com",
+  "https://www.qcsstudios.com", // ✅ LIVE FRONTEND
 ];
 
 /* ===================== CORS CONFIG ===================== */
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow Postman / server-to-server
+      // Allow Postman / server-to-server / curl
       if (!origin) return callback(null, true);
 
+      // Allow listed origins
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
@@ -28,7 +31,7 @@ app.use(
     allowedHeaders: [
       "Content-Type",
       "Authorization",
-      "x-invite-token", // ✅ VERY IMPORTANT
+      "x-invite-token", // ✅ invite flow header
     ],
     credentials: true,
   })
@@ -40,11 +43,13 @@ app.use(express.urlencoded({ extended: true }));
 
 /* ===================== ROOT TEST ===================== */
 app.get("/", (req, res) => {
-  res.send("HRMS backend is running");
+  res.send("HRMS backend is running 🚀");
 });
 
-/* ===================== ROUTES ===================== */
+/* ===================== TENANT MIDDLEWARE ===================== */
 app.use(require("./middlewares/tenant.middleware"));
+
+/* ===================== ROUTES ===================== */
 app.use("/auth/superadmin", require("./modules/superadmin/superadmin.routes"));
 app.use("/invites", require("./modules/invites/invite.routes"));
 app.use("/companies", require("./modules/companies/company.routes"));
@@ -58,7 +63,7 @@ app.use((err, req, res, next) => {
     });
   }
 
-  console.error(err);
+  console.error("🔥 Server Error:", err);
   res.status(500).json({
     error: "Something went wrong!",
   });
