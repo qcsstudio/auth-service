@@ -9,12 +9,13 @@ module.exports = async (req, res, next) => {
       return next();
     }
 
-    const cleanHost = host.split(":")[0];
+    const cleanHost = host.split(":")[0]; // remove port if any
 
-    // 🔥 SKIP tenant for IP or localhost
+    // 🔥 SKIP tenant for IP, localhost, or global API domain
     if (
       cleanHost === "localhost" ||
-      /^\d+\.\d+\.\d+\.\d+$/.test(cleanHost)
+      /^\d+\.\d+\.\d+\.\d+$/.test(cleanHost) ||
+      cleanHost === "api.qcsstudios.com" // treat this as global/superadmin
     ) {
       req.tenant = null;
       return next();
@@ -28,8 +29,10 @@ module.exports = async (req, res, next) => {
       return next();
     }
 
+    // Get subdomain
     const subdomain = parts[0];
 
+    // Find company by slug
     const company = await Company.findOne({ slug: subdomain });
 
     if (!company) {
