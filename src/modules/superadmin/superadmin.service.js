@@ -21,12 +21,10 @@ exports.superAdminLogin = async (email, password) => {
 
   return { user: admin, token };
 };
-
-// 🔐 COMPANY ADMIN LOGIN (tenant aware)
 exports.companyAdminLogin = async (email, password, tenant) => {
   const user = await User.findOne({
     email,
-    companyId: tenant._id
+    companyId: tenant.companyId // <- FIXED
   });
 
   if (!user) throw new Error("Invalid credentials");
@@ -45,12 +43,11 @@ exports.companyAdminLogin = async (email, password, tenant) => {
   const token = jwt.signToken({
     id: user._id,
     role: user.role,
-    companyId: tenant._id
+    companyId: tenant.companyId
   });
 
   return { user, token };
 };
-
 
 // exports.login = async (email, password) => {
 //   const admin = await SuperAdmin.findOne({ email });
