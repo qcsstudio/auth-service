@@ -86,13 +86,15 @@ exports.createCompanyAdmin = async (companyId, data) => {
   company.adminId = admin._id;
   await company.save();
 
-  // 🔥 Send welcome email immediately
-  await sendAdminWelcomeEmail({
-    to: email,
-    fullName,
-    tempPassword,
-    loginUrl: company.customUrl // e.g., https://varu333.qcsstudios.com/login
-  });
+ // 🔥 Send welcome email immediately
+await sendAdminWelcomeEmail({
+  to: email,
+  companyName: company.name,
+  companySlug: company.slug,
+  username: email,
+  password: tempPassword
+});
+
 
   return { adminId: admin._id };
 };
