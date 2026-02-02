@@ -1,30 +1,36 @@
-const Company = require("../modules/companies/company.model");
-
 module.exports = async (req, res, next) => {
   try {
-    const host = req.headers.host;
-    if (!host) {
+    // 1️⃣ Prefer explicit tenant header
+    const tenantHost =
+      req.headers["x-tenant"] ||
+      req.headers.origin ||
+      req.headers.referer;
+
+    if (!tenantHost) {
       req.tenant = null;
       return next();
     }
 
-    const cleanHost = host.split(":")[0].toLowerCase();
+    const hostname = new URL(tenantHost).hostname;
+    const cleanHost = hostname.replace("www.", "");
 
-    // 🚫 Root domains → SUPER_ADMIN
-    const rootDomains = ["localhost", "api.qcsstudios.com", "www.qcsstudios.com", "qcsstudios.com"];
-    if (rootDomains.includes(cleanHost) || /^\d+\.\d+\.\d+\.\d+$/.test(cleanHost)) {
-      req.tenant = null; // SUPER_ADMIN
+    // 2️⃣ Root → SUPER_ADMIN
+    const rootDomains = [
+      "qcsstudios.com",
+      "api.qcsstudios.com",
+      "localhost"
+    ];
+
+    if (
+      rootDomains.includes(cleanHost) ||
+      /^\d+\.\d+\.\d+\.\d+$/.test(cleanHost)
+    ) {
+      req.tenant = null;
       return next();
     }
 
-    // ✅ Otherwise, detect subdomain for company
-    const parts = cleanHost.split(".");
-    if (parts.length < 3) {
-      req.tenant = null; // fallback to SUPER_ADMIN
-      return next();
-    }
-
-    const subdomain = parts[0];
+    // 3️⃣ Subdomain → COMPANY
+    const subdomain = cleanHost.split(".")[0];
     const company = await Company.findOne({ slug: subdomain });
 
     if (!company) {
