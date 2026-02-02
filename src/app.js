@@ -3,24 +3,25 @@ const cors = require("cors");
 
 const app = express();
 
-/* ===================== EXACT ALLOWED ORIGINS ===================== */
+/* ===================== ALLOWED EXACT ORIGINS ===================== */
 const allowedExactOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "https://qcshrms.vercel.app",
   "https://hrms.qcsstudios.com",
   "https://www.qcsstudios.com",
+  "https://demo.qcsstudios.com",
 ];
 
 /* ===================== ALLOWED SUBDOMAIN PATTERN ===================== */
-// Allows: xyz.qcsstudios.com, abc.qcsstudios.com, etc.
+// Allows: xyz.qcsstudios.com, abc.qcsstudios.com
 const allowedDomainRegex = /\.qcsstudios\.com$/;
 
 /* ===================== CORS CONFIG ===================== */
 app.use(
   cors({
-    origin: function (origin, callback) {
-      // Allow Postman / curl / server-to-server calls
+    origin: (origin, callback) => {
+      // Allow server-to-server, curl, postman
       if (!origin) return callback(null, true);
 
       // Allow exact origins
@@ -28,40 +29,36 @@ app.use(
         return callback(null, true);
       }
 
-      // Allow dynamic tenant subdomains
+      // Allow any *.qcsstudios.com
       try {
         const hostname = new URL(origin).hostname;
-
         if (allowedDomainRegex.test(hostname)) {
           return callback(null, true);
         }
       } catch (err) {
-        console.log("❌ Invalid origin format:", origin);
+        console.log("❌ Invalid origin:", origin);
       }
 
-      console.log("❌ Blocked CORS for origin:", origin);
+      console.log("❌ CORS blocked for:", origin);
       return callback(new Error("CORS not allowed"));
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [
       "Content-Type",
       "Authorization",
       "x-invite-token",
     ],
-    credentials: true,
   })
 );
 
-/* ===================== PRE-FLIGHT HANDLING ===================== */
-app.options("*", cors());
-
-/* ===================== BODY PARSER ===================== */
+/* ===================== BODY PARSERS ===================== */
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-/* ===================== ROOT TEST ===================== */
+/* ===================== HEALTH CHECK ===================== */
 app.get("/", (req, res) => {
-  res.send("HRMS backend is running 🚀");
+  res.send("Auth Service running 🚀");
 });
 
 /* ===================== TENANT IDENTIFICATION ===================== */
@@ -73,9 +70,16 @@ app.use("/invites", require("./modules/invites/invite.routes"));
 app.use("/companies", require("./modules/companies/company.routes"));
 app.use("/users", require("./modules/users/user.routes"));
 
+/* ===================== 404 HANDLER ===================== */
+app.use((req, res) => {
+  res.status(404).json({
+    error: "Route not found",
+    path: req.originalUrl,
+  });
+});
+
 /* ===================== ERROR HANDLER ===================== */
 app.use((err, req, res, next) => {
-  // CORS rejection
   if (err.message === "CORS not allowed") {
     return res.status(403).json({
       error: "CORS blocked: origin not allowed",
@@ -84,7 +88,7 @@ app.use((err, req, res, next) => {
 
   console.error("🔥 Server Error:", err);
   res.status(500).json({
-    error: "Something went wrong!",
+    error: "Something went wrong",
   });
 });
 
