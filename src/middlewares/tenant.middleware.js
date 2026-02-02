@@ -2,37 +2,30 @@ const Company = require("../modules/companies/company.model");
 
 module.exports = async (req, res, next) => {
   try {
-    // 🚫 Bypass tenant for global/auth routes
-    if (
-      req.path.startsWith("/auth/superadmin") ||
-      req.path.startsWith("/invites")
-    ) {
-      req.tenant = null;
-      return next();
-    }
-
     const host = req.headers.host;
     if (!host) {
       req.tenant = null;
       return next();
     }
 
-    const cleanHost = host.split(":")[0];
+    const cleanHost = host.split(":")[0].toLowerCase();
 
-    // 🚫 Non-tenant hosts
+    // 🚫 Non-tenant hosts → SUPER_ADMIN domain
     if (
       cleanHost === "localhost" ||
       /^\d+\.\d+\.\d+\.\d+$/.test(cleanHost) ||
       cleanHost === "api.qcsstudios.com" ||
-      cleanHost === "www.qcsstudios.com"
+      cleanHost === "www.qcsstudios.com" ||
+      cleanHost === "qcsstudios.com"
     ) {
-      req.tenant = null;
+      req.tenant = null; // root domain → SUPER_ADMIN
       return next();
     }
 
+    // Subdomain → try to find tenant
     const parts = cleanHost.split(".");
     if (parts.length < 3) {
-      req.tenant = null;
+      req.tenant = null; // fallback to root
       return next();
     }
 
