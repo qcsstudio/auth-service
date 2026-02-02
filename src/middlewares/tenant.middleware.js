@@ -1,3 +1,6 @@
+const Company = require("../modules/companies/company.model");
+
+
 module.exports = async (req, res, next) => {
   try {
     // 1️⃣ Prefer explicit tenant header
