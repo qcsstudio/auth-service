@@ -22,23 +22,11 @@ exports.superAdminLogin = async (email, password) => {
   return { user: admin, token };
 };
 exports.companyAdminLogin = async (email, password, tenant) => {
-  const user = await User.findOne({
-    email,
-    companyId: tenant.companyId // <- FIXED
-  });
-
+  const user = await User.findOne({ email, companyId: tenant.companyId });
   if (!user) throw new Error("Invalid credentials");
 
   const match = await bcrypt.compare(password, user.password);
   if (!match) throw new Error("Invalid credentials");
-
-  if (user.mustChangePassword) {
-    return {
-      user,
-      forcePasswordChange: true,
-      token: null
-    };
-  }
 
   const token = jwt.signToken({
     id: user._id,
@@ -46,8 +34,13 @@ exports.companyAdminLogin = async (email, password, tenant) => {
     companyId: tenant.companyId
   });
 
-  return { user, token };
+  return {
+    user,
+    token,
+    forcePasswordChange: user.mustChangePassword
+  };
 };
+
 
 // exports.login = async (email, password) => {
 //   const admin = await SuperAdmin.findOne({ email });
