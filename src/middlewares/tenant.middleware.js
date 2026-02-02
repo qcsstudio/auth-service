@@ -17,7 +17,6 @@ module.exports = async (req, res, next) => {
     // 2️⃣ Root → SUPER_ADMIN
     const rootDomains = [
       "qcsstudios.com",
-      "api.qcsstudios.com",
       "localhost"
     ];
 
