@@ -5,21 +5,39 @@ const service = require("./superadmin.service");
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password)
+    if (!email || !password) {
       return res.status(400).json({ message: "email and password required" });
-
-    // 🔥 SUPER_ADMIN login (root domain)
-    if (!req.tenant) {
-      const { user, token } = await service.superAdminLogin(email, password);
-      return res.json({ message: "login successful", role: "SUPER_ADMIN", token });
     }
 
-    // 🔥 COMPANY_ADMIN login (subdomain)
+    // 🔥 SUPER_ADMIN login → root domain
+    if (!req.tenant) {
+      const { user, token } = await service.superAdminLogin(email, password);
+
+      if (!user) {
+        return res.status(401).json({ message: "Invalid superadmin credentials" });
+      }
+
+      console.log("Login detected: SUPER_ADMIN", user.email);
+
+      return res.json({
+        message: "login successful",
+        role: "SUPER_ADMIN",
+        token,
+      });
+    }
+
+    // 🔥 COMPANY_ADMIN login → subdomain
     const { user, token, forcePasswordChange } = await service.companyAdminLogin(
       email,
       password,
       req.tenant
     );
+
+    if (!user) {
+      return res.status(401).json({ message: "Invalid admin credentials" });
+    }
+
+    console.log("Login detected: COMPANY_ADMIN", user.email, "Tenant:", req.tenant.slug);
 
     return res.json({
       message: "login successful",
@@ -28,7 +46,8 @@ exports.login = async (req, res) => {
       token,
     });
   } catch (err) {
-    return res.status(401).json({ message: err.message });
+    console.error("Login error:", err);
+    return res.status(500).json({ message: "Something went wrong" });
   }
 };
 

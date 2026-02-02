@@ -1,8 +1,9 @@
 const router = require("express").Router();
-const controller = require("./superadmin.controller");
-const authMiddleware = require("../../middlewares/auth.middleware");
+const controller = require("./auth.controller");
+const tenantMiddleware = require("../../middlewares/tenant.middleware");
 
-router.post("/login", controller.login);
-router.get("/super-admin/dashboard",authMiddleware,controller.getSuperAdminDashboardData);
+// Apply tenant middleware to all login routes
+router.post("/superadmin/login", tenantMiddleware, controller.login);
+router.post("/login", tenantMiddleware, controller.login); // for company admins
 
 module.exports = router;

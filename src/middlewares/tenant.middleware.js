@@ -17,7 +17,7 @@ module.exports = async (req, res, next) => {
       return next();
     }
 
-    // ✅ Otherwise, check subdomain
+    // ✅ Otherwise, detect subdomain for company
     const parts = cleanHost.split(".");
     if (parts.length < 3) {
       req.tenant = null; // fallback to SUPER_ADMIN
