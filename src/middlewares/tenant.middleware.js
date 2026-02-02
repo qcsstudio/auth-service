@@ -10,22 +10,17 @@ module.exports = async (req, res, next) => {
 
     const cleanHost = host.split(":")[0].toLowerCase();
 
-    // 🚫 Non-tenant hosts → SUPER_ADMIN domain
-    if (
-      cleanHost === "localhost" ||
-      /^\d+\.\d+\.\d+\.\d+$/.test(cleanHost) ||
-      cleanHost === "api.qcsstudios.com" ||
-      cleanHost === "www.qcsstudios.com" ||
-      cleanHost === "qcsstudios.com"
-    ) {
-      req.tenant = null; // root domain → SUPER_ADMIN
+    // 🚫 Root domains → SUPER_ADMIN
+    const rootDomains = ["localhost", "api.qcsstudios.com", "www.qcsstudios.com", "qcsstudios.com"];
+    if (rootDomains.includes(cleanHost) || /^\d+\.\d+\.\d+\.\d+$/.test(cleanHost)) {
+      req.tenant = null; // SUPER_ADMIN
       return next();
     }
 
-    // Subdomain → try to find tenant
+    // ✅ Otherwise, check subdomain
     const parts = cleanHost.split(".");
     if (parts.length < 3) {
-      req.tenant = null; // fallback to root
+      req.tenant = null; // fallback to SUPER_ADMIN
       return next();
     }
 

@@ -2,44 +2,32 @@ const service = require("./superadmin.service");
 
 // const authService = require("./auth.service");
 
-
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    if (!email || !password) {
+    if (!email || !password)
       return res.status(400).json({ message: "email and password required" });
-    }
 
-    // 🔥 CASE 1: SUPER ADMIN (root domain)
+    // 🔥 SUPER_ADMIN login (root domain)
     if (!req.tenant) {
       const { user, token } = await service.superAdminLogin(email, password);
-
-      console.log("Login detected: SUPER_ADMIN", user.email);
-
-      return res.json({
-        message: "login successful",
-        role: "SUPER_ADMIN",
-        token,
-      });
+      return res.json({ message: "login successful", role: "SUPER_ADMIN", token });
     }
 
-    // 🔥 CASE 2: COMPANY ADMIN (subdomain)
+    // 🔥 COMPANY_ADMIN login (subdomain)
     const { user, token, forcePasswordChange } = await service.companyAdminLogin(
       email,
       password,
       req.tenant
     );
 
-    console.log("Login detected: COMPANY_ADMIN", user.email, "Tenant:", req.tenant.slug);
-
     return res.json({
       message: "login successful",
-      role: user.role, // should be COMPANY_ADMIN
+      role: user.role, // COMPANY_ADMIN
       forcePasswordChange,
       token,
     });
   } catch (err) {
-    console.error("Login error:", err);
     return res.status(401).json({ message: err.message });
   }
 };
