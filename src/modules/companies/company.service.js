@@ -41,7 +41,7 @@ exports.createCompany = async (data) => {
 };
 
 
-// CREATE COMPANY ADMIN
+
 exports.createCompanyAdmin = async (companyId, data) => {
   if (!mongoose.Types.ObjectId.isValid(companyId)) {
     throw new Error("invalid company id");
@@ -64,24 +64,36 @@ exports.createCompanyAdmin = async (companyId, data) => {
     throw new Error("email already in use");
   }
 
+  // 🔥 Generate temporary password
   const tempPassword = generateStrongPassword();
+
+  // 🔥 Hash it before saving
   const hashedPassword = await bcrypt.hash(tempPassword, 10);
 
+  // 🔥 Create the admin user
   const admin = await User.create({
     name: fullName,
     email,
     contact,
     role,
     companyId,
-    password: hashedPassword,
-    adminTempPassword: tempPassword, // stored temporarily
+    password: hashedPassword,      // hash stored here
+    adminTempPassword: tempPassword, // optional, for email only
     mustChangePassword: true
   });
 
+  // 🔥 Assign adminId to company
   company.adminId = admin._id;
   await company.save();
 
-  // ❌ NO EMAIL HERE
+  // 🔥 Send welcome email immediately
+  await sendAdminWelcomeEmail({
+    to: email,
+    fullName,
+    tempPassword,
+    loginUrl: company.customUrl // e.g., https://varu333.qcsstudios.com/login
+  });
+
   return { adminId: admin._id };
 };
 
