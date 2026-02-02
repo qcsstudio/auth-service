@@ -3,25 +3,40 @@ const cors = require("cors");
 
 const app = express();
 
-/* ===================== ALLOWED ORIGINS ===================== */
-const allowedOrigins = [
+/* ===================== EXACT ALLOWED ORIGINS ===================== */
+const allowedExactOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "https://qcshrms.vercel.app",
-  "https://hrms.qcsstudio.com",
-  "https://www.qcsstudios.com", // ✅ LIVE FRONTEND
+  "https://hrms.qcsstudios.com",
+  "https://www.qcsstudios.com",
 ];
+
+/* ===================== ALLOWED SUBDOMAIN PATTERN ===================== */
+// Allows: xyz.qcsstudios.com, abc.qcsstudios.com, etc.
+const allowedDomainRegex = /\.qcsstudios\.com$/;
 
 /* ===================== CORS CONFIG ===================== */
 app.use(
   cors({
     origin: function (origin, callback) {
-      // Allow Postman / server-to-server / curl
+      // Allow Postman / curl / server-to-server calls
       if (!origin) return callback(null, true);
 
-      // Allow listed origins
-      if (allowedOrigins.includes(origin)) {
+      // Allow exact origins
+      if (allowedExactOrigins.includes(origin)) {
         return callback(null, true);
+      }
+
+      // Allow dynamic tenant subdomains
+      try {
+        const hostname = new URL(origin).hostname;
+
+        if (allowedDomainRegex.test(hostname)) {
+          return callback(null, true);
+        }
+      } catch (err) {
+        console.log("❌ Invalid origin format:", origin);
       }
 
       console.log("❌ Blocked CORS for origin:", origin);
@@ -31,11 +46,14 @@ app.use(
     allowedHeaders: [
       "Content-Type",
       "Authorization",
-      "x-invite-token", // ✅ invite flow header
+      "x-invite-token",
     ],
     credentials: true,
   })
 );
+
+/* ===================== PRE-FLIGHT HANDLING ===================== */
+app.options("*", cors());
 
 /* ===================== BODY PARSER ===================== */
 app.use(express.json());
@@ -46,7 +64,7 @@ app.get("/", (req, res) => {
   res.send("HRMS backend is running 🚀");
 });
 
-/* ===================== TENANT MIDDLEWARE ===================== */
+/* ===================== TENANT IDENTIFICATION ===================== */
 app.use(require("./middlewares/tenant.middleware"));
 
 /* ===================== ROUTES ===================== */
@@ -57,6 +75,7 @@ app.use("/users", require("./modules/users/user.routes"));
 
 /* ===================== ERROR HANDLER ===================== */
 app.use((err, req, res, next) => {
+  // CORS rejection
   if (err.message === "CORS not allowed") {
     return res.status(403).json({
       error: "CORS blocked: origin not allowed",
