@@ -5,7 +5,7 @@ const Company = require("./company.model");
 exports.createCompany = async (req, res) => {
   try {
     const payload = {
-      name: req.body.companyName,   // 👈 mapping
+      name: req.body.name,  // 👈 mapping
       slug: req.body.slug,
       customUrl: req.body.customUrl,
       industryType: req.body.industryType,
