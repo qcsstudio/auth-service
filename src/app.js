@@ -49,7 +49,7 @@ app.use((req, res, next) => {
 });
 
 /* ===================== ROUTES ===================== */
-app.use("/auth/superadmin", require("./modules/superadmin/superadmin.routes"));
+app.use("/auth", require("./modules/superadmin/superadmin.routes"));
 app.use("/invites", require("./modules/invites/invite.routes"));
 app.use("/companies", require("./modules/companies/company.routes"));
 app.use("/users", require("./modules/users/user.routes"));

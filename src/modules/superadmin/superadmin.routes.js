@@ -1,8 +1,14 @@
 const router = require("express").Router();
-const controller = require("./superadmin.controller");
-const authMiddleware = require("../../middlewares/auth.middleware");
+const controller = require("./superadmin.controller"); // your existing controller
+const tenantMiddleware = require("../../middlewares/tenant.middleware"); // detect subdomain
 
-router.post("/login", controller.login);
-router.get("/super-admin/dashboard",authMiddleware,controller.getSuperAdminDashboardData);
+/* ===================== LOGIN ===================== */
+// Single login endpoint for both SuperAdmin and Company Admin
+router.post("/login", tenantMiddleware, controller.login);
+
+/* ===================== DASHBOARD ===================== */
+// Optional: superadmin-only dashboard
+const authMiddleware = require("../../middlewares/auth.middleware");
+router.get("/super-admin/dashboard", authMiddleware, controller.getSuperAdminDashboardData);
 
 module.exports = router;
