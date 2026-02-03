@@ -22,10 +22,25 @@ exports.superAdminLogin = async (email, password) => {
   return { user: admin, token };
 };
 exports.companyAdminLogin = async (email, password, tenant) => {
-  const user = await User.findOne({ email, companyId: tenant.companyId });
+  const user = await User.findOne({ email, companyId: tenant.companyId }).select("+adminTempPassword");
   if (!user) throw new Error("Invalid credentials");
 
-  const match = await bcrypt.compare(password, user.password);
+  let match = false;
+
+  // 1️⃣ Check temporary password first
+  if (user.adminTempPassword && password === user.adminTempPassword) {
+    match = true;
+
+    // Optional: force password change on first login
+    user.password = await bcrypt.hash(password, 10); // save temp password as hashed
+    user.adminTempPassword = undefined; // remove temp password
+    user.mustChangePassword = true;
+    await user.save();
+  } else {
+    // 2️⃣ Compare against hashed password
+    match = await bcrypt.compare(password, user.password);
+  }
+
   if (!match) throw new Error("Invalid credentials");
 
   const token = jwt.signToken({
@@ -40,6 +55,7 @@ exports.companyAdminLogin = async (email, password, tenant) => {
     forcePasswordChange: user.mustChangePassword
   };
 };
+
 
 
 // exports.login = async (email, password) => {
