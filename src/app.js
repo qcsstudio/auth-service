@@ -34,7 +34,7 @@ app.use(
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-invite-token"],
+allowedHeaders: ["Content-Type", "Authorization", "x-invite-token", "x-tenant"],
   })
 );
 
