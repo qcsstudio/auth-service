@@ -26,7 +26,7 @@ exports.sendSetupLink = async (req, res) => {
       otp
     });
 
-    const setupUrl = `https://qcshrms.vercel.app/org-setup`;
+const setupUrl = `https://www.qcsstudios.com/org-setup`;
 
     // ✅ send ALL THREE in email
     await sendInviteEmail({
