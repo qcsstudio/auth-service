@@ -17,11 +17,18 @@ const userSchema = new mongoose.Schema(
       required: true
     },
 
-    role: {
-      type: String,
-      enum: ["SUPER_ADMIN", "COMPANY_ADMIN"],
-      required: true
-    },
+   role: {
+  type: String,
+  enum: [
+    "SUPER_ADMIN",
+    "COMPANY_ADMIN",
+    "HR",
+    "TL",
+    "EMPLOYEE"
+  ],
+  required: true
+},
+
 
     companyId: {
       type: mongoose.Schema.Types.ObjectId,
