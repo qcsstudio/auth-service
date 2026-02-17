@@ -173,3 +173,149 @@ exports.getCompanyBrandingBySlug = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.getCompanyBranding = async (req, res) => {
+  try {
+    const  id  = req.user.id;
+
+    const company = await Company.findOne({ adminId:id })
+      .select("_id welcomeTitle welcomeMessage branding.logo branding.loginImage adminId");
+
+    if (!company) {
+      return res.status(404).json({
+        message: "Company not found for this admin"
+      });
+    }
+
+    res.status(200).json({
+      message: "Company branding fetched successfully",
+      data: company
+    });
+
+  } catch (error) {
+    console.error("Fetch error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+exports.updateCompanyBranding = async (req, res) => {
+  try {
+    const companyId = req.user.companyId;
+
+    const { welcomeTitle, welcomeMessage } = req.body;
+
+    const updateData = {};
+
+    // Text fields
+    if (welcomeTitle !== undefined)
+      updateData.welcomeTitle = welcomeTitle;
+
+    if (welcomeMessage !== undefined)
+      updateData.welcomeMessage = welcomeMessage;
+
+    // File fields (S3)
+    if (req.files?.["brand-logo"]) {
+      updateData["branding.logo"] =
+        req.files["brand-logo"][0].location;
+    }
+
+    if (req.files?.["cover-image"]) {
+      updateData["branding.loginImage"] =
+        req.files["cover-image"][0].location;
+    }
+
+    const updatedCompany = await Company.findByIdAndUpdate(
+      companyId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select(
+      "welcomeTitle welcomeMessage branding.logo branding.loginImage"
+    );
+
+    if (!updatedCompany) {
+      return res.status(404).json({
+        message: "Company not found"
+      });
+    }
+
+    res.status(200).json({
+      message: "Company branding updated successfully",
+      data: updatedCompany
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: error.message
+    });
+  }
+};
+
+
+exports.updateGlobalSetting = async (req, res) => {
+  try {
+    const id  = req.user.companyId;
+
+    const updateData = {
+      name: req.body.name,
+      slug: req.body.slug,
+      customUrl: req.body.customUrl,
+      industryType: req.body.industryType,
+      country: req.body.country,
+      timezone: req.body.timezone,
+      currency: req.body.currency,
+      leaveCycleStartMonth: req.body.leaveCycleStartMonth,
+      financialYearStartMonth: req.body.financialYearStartMonth,
+      dateFormat: req.body.dateFormat,
+      timeFormat: req.body.timeFormat,
+      callingCode:req.body.callingCode
+    };
+
+    const updatedCompany = await Company.findOneAndUpdate(
+      { _id:id },
+      updateData,
+      { new: true, runValidators: true }
+    ).select(
+      "adminId name slug customUrl industryType country timezone currency leaveCycleStartMonth financialYearStartMonth dateFormat timeFormat callingCode"
+    );
+
+    if (!updatedCompany) {
+      return res.status(404).json({
+      message: "Company not found for this admin"
+    });
+  }
+
+    res.status(200).json({
+      message: "Global settings updated successfully",
+      data: updatedCompany
+    });
+
+  } catch (error) {
+    console.error("Update error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+exports.getGlobalSetting = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+
+    const company = await Company.findOne({ adminId }).select(
+      "_id adminId name slug customUrl industryType country timezone currency leaveCycleStartMonth financialYearStartMonth dateFormat timeFormat callingCode"
+    );
+
+    if (!company) {
+      return res.status(404).json({
+        message: "Company not found for this admin"
+    });
+  }
+
+    res.status(200).json({
+      message: "Global settings fetched successfully",
+      data: company
+    });
+
+  } catch (error) {
+    console.error("Fetch error:", error);
+    res.status(500).json({ error: "Server error" });
+  }
+};

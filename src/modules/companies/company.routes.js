@@ -63,4 +63,47 @@ router.post(
 
 router.get("/company/branding/:slug", controller.getCompanyBrandingBySlug);
 
+router.get(
+  "/company-branding-get",
+  auth,
+  allowRoles("COMPANY_ADMIN"),
+  controller.getCompanyBranding
+);
+
+// UPDATE
+router.patch(
+  "/company-branding-edit",
+  auth,
+  allowRoles("COMPANY_ADMIN"),
+  (req, res, next) => {
+    uploadToS3("company-branding").fields([
+      { name: "brand-logo", maxCount: 1 },
+      { name: "cover-image", maxCount: 1 }
+    ])(req, res, err => {
+      if (err) {
+        return res.status(400).json({ message: err.message });
+      }
+      next();
+    });
+  },
+  controller.updateCompanyBranding
+);
+
+
+// GET
+router.get(
+  "/global-setting-get",
+  auth,
+  allowRoles("COMPANY_ADMIN"),
+  controller.getGlobalSetting
+);
+
+// UPDATE
+router.patch(
+  "/global-setting-edit",
+  auth,
+  allowRoles("COMPANY_ADMIN"),
+  controller.updateGlobalSetting
+);
+
 module.exports = router;

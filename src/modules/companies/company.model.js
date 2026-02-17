@@ -35,6 +35,31 @@ const companySchema = new mongoose.Schema({
     isActive: { type: Boolean, default: false },
     startDate: Date,
     endDate: Date
+  },
+  welcomeTitle: String,
+  welcomeMessage: String,
+  leaveCycleStartMonth: {
+    type: String,
+    default: null
+  },
+  callingCode: {
+    type: String,
+    required: true,
+  },
+
+  financialYearStartMonth: {
+    type: String,
+    default: null
+  },
+
+  dateFormat: {
+    type: String,
+    default: null
+  },
+
+  timeFormat: {
+    type: String,
+    default: null
   }
 });
 
