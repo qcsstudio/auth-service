@@ -148,13 +148,13 @@ exports.createCompanyAdminOfInvite = async (companyId, data) => {
   await company.save();
 
   // 8️⃣ send welcome email
-  await sendWorkspaceEmail2({
-    to: admin.email,
-    companyName: company.name,
-    companyUrl,
-    username: admin.email,
-    password: tempPassword
-  });
+  await sendAdminWelcomeEmail({
+    to: admin.email,
+    companyName: company.name,
+    companySlug: company.slug,
+    username: admin.email,
+    password: tempPassword
+  });
 
   return { admin };
 };
