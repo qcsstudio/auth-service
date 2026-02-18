@@ -43,9 +43,10 @@ const companySchema = new mongoose.Schema({
     default: null
   },
   callingCode: {
-    type: String,
-    required: true,
-  },
+  type: String,
+  default: null
+},
+
 
   financialYearStartMonth: {
     type: String,
