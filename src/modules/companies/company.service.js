@@ -8,27 +8,32 @@ const { readExcelFile } = require("../../utils/excelReader");
 const Employee = require("./employee.model");
 
 exports.createCompany = async (data) => {
-  const { name, slug, country, timezone, currency, customUrl, industryType } = data;
+  const { 
+    name, 
+    slug, 
+    country, 
+    timezone, 
+    currency, 
+    customUrl, 
+    industryType,
+    createdBy   // 🔥 ADD THIS
+  } = data;
 
   if (!name || !slug) {
     throw new Error("name and slug are required");
   }
 
-  // Auto-generate customUrl if not provided
   let finalCustomUrl = customUrl || `${slug}.qcs.com`;
 
-  // Check if slug exists
   const slugExists = await Company.findOne({ slug });
   if (slugExists) throw new Error("company slug already exists");
 
-  // Ensure customUrl is unique
   let i = 1;
   while (await Company.findOne({ customUrl: finalCustomUrl })) {
     finalCustomUrl = `${slug}-${i}.qcs.com`;
     i++;
   }
 
-  // Create the company
   return await Company.create({
     name,
     slug,
@@ -36,7 +41,8 @@ exports.createCompany = async (data) => {
     industryType,
     country,
     timezone,
-    currency
+    currency,
+    createdBy   // 🔥 SAVE IT HERE
   });
 };
 
