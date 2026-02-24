@@ -58,6 +58,12 @@ const companySchema = new mongoose.Schema({
     default: null
   },
 
+  createdBy: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "SuperAdmin",
+  required: true
+},
+
   timeFormat: {
     type: String,
     default: null

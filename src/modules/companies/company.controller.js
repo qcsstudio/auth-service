@@ -11,7 +11,8 @@ exports.createCompany = async (req, res) => {
       industryType: req.body.industryType,
       country: req.body.country,
       timezone: req.body.timezone,
-      currency: req.body.currency
+      currency: req.body.currency,
+      createdBy: req.user.id 
     };
 
     const company = await service.createCompany(payload);
