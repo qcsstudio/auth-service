@@ -85,7 +85,7 @@ exports.createCompanyFromInvite = async (req, res) => {
 
     // 🔁 SAME payload as super admin
     const companyPayload = {
-      name: req.body.companyName,
+      name: req.body.name,
       slug: req.body.slug,
       customUrl: req.body.customUrl,
       industryType: req.body.industryType,
