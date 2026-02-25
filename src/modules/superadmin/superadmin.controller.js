@@ -48,62 +48,95 @@ exports.login = async (req, res) => {
   }
 };
 
-
 exports.getSuperAdminDashboardData = async (req, res) => {
-  const { role } = req.user;
-  if(role ==! "SUPER_ADMIN") return res.status(401).json({ message: "Unauthorized" });
-  try {
-    const { status, page = 1, limit = 10 } = req.query;
+  const { role, id } = req.user;
 
-    const pageNumber = Number(page);
-    const pageLimit = Number(limit);
+  if (role !== "SUPER_ADMIN") {
+    return res.status(401).json({ success: false, message: "Unauthorized" });
+  }
 
-    if (pageNumber < 1 || pageLimit < 1) {
-      return res.status(400).json({
-        success: false,
-        message: "Page and limit must be greater than 0"
-      });
-    }
+  try {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid userId"
+      });
+    }
 
-    if (pageLimit > 100) {
-      return res.status(400).json({
-        success: false,
-        message: "Limit cannot exceed 100"
-      });
-    }
+    let { status } = req.query;
+    const matchStage = { createdBy: new mongoose.Types.ObjectId(id) };
 
-    const matchStage = {};
-    if (status) {
-      const validStatuses = ["DRAFT", "ACTIVE", "SUSPENDED"];
-      const upperStatus = status.toUpperCase();
+    if (status) {
+      status = status.toUpperCase();
+      const validStatuses = ["ACTIVE", "PAUSED", "SUSPENDED"];
+      if (!validStatuses.includes(status)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`
+        });
+      }
+      matchStage.status = status;
+    }
 
-      if (!validStatuses.includes(upperStatus)) {
-        return res.status(400).json({
-          success: false,
-          message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`
-        });
-      }
-      matchStage.status = upperStatus;
-    }
+    const pipeline = [
+      { $match: matchStage },
+      {
+        $lookup: {
+          from: "users",
+          localField: "adminId",
+          foreignField: "_id",
+          as: "adminDetails"
+        }
+      },
+      {
+        $unwind: {
+          path: "$adminDetails",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $project: {
+          name: 1,
+          slug: 1,
+          customUrl: 1,
+          industryType: 1,
+          country: 1,
+          timezone: 1,
+          currency: 1,
+          status: 1,
+          subscription: 1,
+          createdBy: 1,
+          createdAt: 1,
+          adminDetails: {
+            _id: "$adminDetails._id",
+            name: "$adminDetails.name",
+            email: "$adminDetails.email",
+            role:"$adminDetails.role"
+          }
+        }
+      },
+      {
+        $facet: {
+          data: [{ $sort: { createdAt: -1 } }],
+          count: [{ $count: "total" }]
+        }
+      }
+    ];
 
+    const result = await companymodel.aggregate(pipeline);
 
-    const data = await service.superAdminDashboardData(
-      matchStage,
-      pageNumber,
-      pageLimit
-    );
+    return res.status(200).json({
+      success: true,
+      message: "Dashboard data fetched successfully",
+      data: result[0].data,
+      total: result[0].count[0]?.total || 0
+    });
 
-    return res.status(200).json({
-      success: true,
-      message: "Dashboard data fetched successfully",
-      data: data
-    });
-  } catch (error) {
-    // console.error("Error fetching dashboard data:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Internal server error",
-      error: error.message
-    });
-  }
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message
+    });
+  }
 };
