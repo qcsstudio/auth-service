@@ -1,5 +1,7 @@
 const service = require("./superadmin.service");
+const mongoose = require("mongoose");
 
+const companymodel = require("../companies/company.model")
 // const authService = require("./auth.service");
 
 exports.login = async (req, res) => {
