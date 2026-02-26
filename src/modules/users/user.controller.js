@@ -3,6 +3,7 @@ const Company = require("../companies/company.model");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const service = require("./user.service");
+const { sendOTPEmail } = require("../../utils/mailer");
 
 
 exports.login = async (req, res) => {
@@ -140,4 +141,118 @@ exports.createInternalUser = async (req, res) => {
     console.error("INTERNAL CREATE ERROR:", err);
     res.status(500).json({ message: "User creation failed", error: err.message });
   }
+};
+
+
+
+exports.sendOTP = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email)
+      return res.status(400).json({ message: "Email is required" });
+
+    const user = await User.findOne({ email});
+
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    user.resetOTP = otp;
+    user.resetOTPExpire = Date.now() + 10 * 60 * 1000;
+    user.isOTPVerified = false;
+
+    await user.save();
+
+    await sendOTPEmail({ to: email, otp });
+
+    res.status(200).json({
+      success: true,
+      message: "OTP sent successfully"
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.verifyOTP = async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    const user = await User.findOne({ email });
+
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
+
+    if (user.resetOTP !== otp)
+      return res.status(400).json({ message: "Invalid OTP" });
+
+    if (user.resetOTPExpire < Date.now())
+      return res.status(400).json({ message: "OTP expired" });
+
+    user.isOTPVerified = true;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "OTP verified"
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { email, newPassword, confirmPassword } = req.body;
+
+    // :white_check_mark: Check required fields
+    if (!email || !newPassword || !confirmPassword) {
+      return res.status(400).json({
+        message: "Email, new password and confirm password are required"
+      });
+    }
+
+    // :white_check_mark: Check password match
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({
+        message: "Passwords do not match"
+      });
+    }
+
+    // :white_check_mark: Optional: Password length validation
+    if (newPassword.length < 6) {
+      return res.status(400).json({
+        message: "Password must be at least 6 characters"
+      });
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
+
+    // if (!user.isOTPVerified)
+    //   return res.status(400).json({ message: "OTP not verified" });
+
+    const hashed = await bcrypt.hash(newPassword, 10);
+
+    user.password = hashed;
+    user.resetOTP = undefined;
+    user.resetOTPExpire = undefined;
+    user.isOTPVerified = false;
+
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Password updated successfully"
+    });
+
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };

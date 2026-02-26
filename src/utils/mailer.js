@@ -139,3 +139,18 @@ exports.sendInviteEmail = async ({ to, setupUrl, otp, token }) => {
 //     `
 //   });
 // };
+exports.sendOTPEmail = async ({ to, otp }) => {
+  const transporter = getTransporter();
+
+  await transporter.sendMail({
+    from: `"QCS" <${process.env.SMTP_USER}>`,
+    to,
+    subject: "Password Reset OTP",
+    html: `
+      <h3>Password Reset Request</h3>
+      <p>Your OTP is:</p>
+      <h2>${otp}</h2>
+      <p>This OTP will expire in 10 minutes.</p>
+    `
+  });
+};

@@ -28,7 +28,12 @@ const userSchema = new mongoose.Schema(
   ],
   required: true
 },
-
+resetOTP: String,
+    resetOTPExpire: Date,
+    isOTPVerified: {
+      type: Boolean,
+      default: false,
+    },
 
     companyId: {
       type: mongoose.Schema.Types.ObjectId,
