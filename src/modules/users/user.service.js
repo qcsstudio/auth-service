@@ -51,32 +51,36 @@ exports.companyAdminLogin = async ({ email, password, companySlug }) => {
   };
 };
 
+exports.changePassword = async ({ userId, oldPassword, newPassword,tenant }) => {
+   const user = await User.findOne({
+    _id: userId,
+    companyId: tenant.companyId
+  }).select("+adminTempPassword");
+  if (!user) throw new Error("user not found");
 
-exports.changePassword = async ({ userId, oldPassword, newPassword }) => {
-  const user = await User.findById(userId);
-  if (!user) throw new Error("user not found");
+  // check old password
+  const match = await bcrypt.compare(oldPassword, user.password);
+  if (!match) throw new Error("old password incorrect");
 
-  // check old password
-  const match = await bcrypt.compare(oldPassword, user.password);
-  if (!match) throw new Error("old password incorrect");
+  // hash new password
+  const hashed = await bcrypt.hash(newPassword, 10);
 
-  // hash new password
-  const hashed = await bcrypt.hash(newPassword, 10);
+  user.password = hashed;
+  user.mustChangePassword = false;
+  user.istemporyPassword= true,
+  user.adminTempPassword = undefined;
+  await user.save();
 
-  user.password = hashed;
-  user.mustChangePassword = false;
-  await user.save();
+  // issue token
+  const token = jwt.sign(
+    {
+      userId: user._id,
+      role: user.role,
+      companyId: user.companyId
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "1d" }
+  );
 
-  // issue token
-  const token = jwt.sign(
-    {
-      userId: user._id,
-      role: user.role,
-      companyId: user.companyId
-    },
-    process.env.JWT_SECRET,
-    { expiresIn: "1d" }
-  );
-
-  return token;
+ return { user, token };
 };

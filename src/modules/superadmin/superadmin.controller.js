@@ -3,52 +3,98 @@ const mongoose = require("mongoose");
 
 const companymodel = require("../companies/company.model")
 // const authService = require("./auth.service");
-
 exports.login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+  try {
+    const { email, password } = req.body;
 
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email and password required" });
-    }
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password required" });
+    }
 
-    // 🔥 SUPER ADMIN LOGIN (no tenant)
-    if (!req.tenant) {
-      const { user, token } = await service.superAdminLogin(email, password);
+    // :fire: SUPER ADMIN LOGIN (no tenant)
+    if (!req.tenant) {
+      const { user, token } = await service.superAdminLogin(email, password);
 
-      return res.json({
-        message: "Login successful",
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: "SUPER_ADMIN"
-        },
-        token
-      });
-    }
+      return res.json({
+        message: "Login successful",
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: "SUPER_ADMIN"
+        },
+        token
+      });
+    }
 
-    // 🔥 COMPANY LOGIN
-    const { user, token, forcePasswordChange } =
-      await service.companyAdminLogin(email, password, req.tenant);
+    // :fire: COMPANY LOGIN
+    const { user, token, forcePasswordChange } =
+      await service.companyAdminLogin(email, password, req.tenant);
 
-    return res.json({
-      message: "Login successful",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        companyId: user.companyId
-      },
-      forcePasswordChange,
-      token
-    });
+    return res.json({
+      message: "Login successful",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        companyId: user.companyId,
+        istemporyPassword:user.istemporyPassword
+      },
+      forcePasswordChange,
+      token
+    });
 
-  } catch (err) {
-    return res.status(401).json({ message: err.message });
-  }
-};
+  } catch (err) {
+    console.log(err,"eeee")
+    return res.status(401).json({ message: err.message });
+  }
+}; 
+// exports.login = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     if (!email || !password) {
+//       return res.status(400).json({ message: "Email and password required" });
+//     }
+
+//     // 🔥 SUPER ADMIN LOGIN (no tenant)
+//     if (!req.tenant) {
+//       const { user, token } = await service.superAdminLogin(email, password);
+
+//       return res.json({
+//         message: "Login successful",
+//         user: {
+//           id: user._id,
+//           name: user.name,
+//           email: user.email,
+//           role: "SUPER_ADMIN"
+//         },
+//         token
+//       });
+//     }
+
+//     // 🔥 COMPANY LOGIN
+//     const { user, token, forcePasswordChange } =
+//       await service.companyAdminLogin(email, password, req.tenant);
+
+//     return res.json({
+//       message: "Login successful",
+//       user: {
+//         id: user._id,
+//         name: user.name,
+//         email: user.email,
+//         role: user.role,
+//         companyId: user.companyId
+//       },
+//       forcePasswordChange,
+//       token
+//     });
+
+//   } catch (err) {
+//     return res.status(401).json({ message: err.message });
+//   }
+// };
 
 exports.getSuperAdminDashboardData = async (req, res) => {
   const { role, id } = req.user;

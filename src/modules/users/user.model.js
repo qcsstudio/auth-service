@@ -39,7 +39,10 @@ resetOTP: String,
       type: mongoose.Schema.Types.ObjectId,
       ref: "Company"
     },
-
+istemporyPassword:{
+      type:Boolean,
+      default:false
+    },
     mustChangePassword: {
       type: Boolean,
       default: false

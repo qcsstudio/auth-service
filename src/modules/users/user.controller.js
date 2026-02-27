@@ -76,29 +76,39 @@ exports.login = async (req, res) => {
 
 
 
-/* CHANGE PASSWORD */
 exports.changePassword = async (req, res) => {
-  try {
-    const { userId, oldPassword, newPassword } = req.body;
+  try {
+    const { userId, oldPassword, newPassword } = req.body;
+    if (!req.tenant) {
+      return res.status(400).json({ message: "Tenant header required" });
+    }
+    if (!userId || !oldPassword || !newPassword) {
+      return res.status(400).json({ message: "all fields required" });
+    }
 
-    if (!userId || !oldPassword || !newPassword) {
-      return res.status(400).json({ message: "all fields required" });
-    }
+    const { user, token } = await service.changePassword({
+      userId,
+      oldPassword,
+      newPassword,
+      tenant: req.tenant
+    });
 
-    const token = await service.changePassword({
-      userId,
-      oldPassword,
-      newPassword
-    });
+    res.json({
+      message: "password changed successfully",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        companyId: user.companyId,
+        istemporyPassword: true
+      }
+    });
 
-    res.json({
-      message: "password changed successfully",
-      token
-    });
-
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
 };
 
 
