@@ -75,21 +75,20 @@ exports.login = async (req, res) => {
 };
 
 
-
 exports.changePassword = async (req, res) => {
   try {
-    const { userId, oldPassword, newPassword } = req.body;
+    const { userId, newPassword, confirmPassword } = req.body;
     if (!req.tenant) {
       return res.status(400).json({ message: "Tenant header required" });
     }
-    if (!userId || !oldPassword || !newPassword) {
+    if (!userId || !newPassword || !confirmPassword) {
       return res.status(400).json({ message: "all fields required" });
     }
 
     const { user, token } = await service.changePassword({
       userId,
-      oldPassword,
-      newPassword,
+       newPassword,
+      confirmPassword,
       tenant: req.tenant
     });
 

@@ -51,21 +51,24 @@ exports.companyAdminLogin = async ({ email, password, companySlug }) => {
   };
 };
 
-exports.changePassword = async ({ userId, oldPassword, newPassword,tenant }) => {
+exports.changePassword = async ({ userId, newPassword, confirmPassword,tenant }) => {
+     if (newPassword !== confirmPassword) {
+    throw new Error("Passwords do not match");
+  }
    const user = await User.findOne({
     _id: userId,
     companyId: tenant.companyId
   }).select("+adminTempPassword");
-  if (!user) throw new Error("user not found");
 
-  // check old password
-  const match = await bcrypt.compare(oldPassword, user.password);
-  if (!match) throw new Error("old password incorrect");
+
+
+  if (!user) throw new Error("User not found");
+
+  // :closed_lock_with_key: hash new password
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
 
   // hash new password
-  const hashed = await bcrypt.hash(newPassword, 10);
-
-  user.password = hashed;
+  user.password = hashedPassword;
   user.mustChangePassword = false;
   user.istemporyPassword= true,
   user.adminTempPassword = undefined;
