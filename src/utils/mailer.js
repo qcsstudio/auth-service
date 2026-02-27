@@ -97,24 +97,68 @@ exports.sendWorkspaceEmail2 = async ({
 
 exports.sendInviteEmail = async ({ to, setupUrl, otp, token }) => {
   const transporter = getTransporter();
-
   const oneLineUrl = `${setupUrl}?token=${token}`;
 
   await transporter.sendMail({
-    from: `"QCS" <${process.env.SMTP_USER}>`,
+    from: `"QCS HRMS" <${process.env.SMTP_USER}>`,
     to,
     subject: "Company Setup Invitation",
     html: `
-      <p>
-        <b>Setup Link:</b><br/>
-        <a href="${oneLineUrl}">${oneLineUrl}</a>
-      </p>
+    <div style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,Helvetica,sans-serif;">
+      <table width="100%" cellpadding="0" cellspacing="0" style="padding:30px 0;">
+        <tr>
+          <td align="center">
+            <table width="600" cellpadding="0" cellspacing="0"
+              style="background:#ffffff;border-radius:10px;overflow:hidden;
+              box-shadow:0 8px 20px rgba(0,0,0,0.05);">
 
-      <p><b>OTP:</b> ${otp}</p>
+              <tr>
+                <td style="background:#0575E6;padding:25px;text-align:center;color:#ffffff;">
+                  <h2 style="margin:0;">Company Setup Invitation</h2>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="padding:30px;color:#333333;">
+                  <p>Your company setup link is ready. Please use the details below to proceed.</p>
+
+                  <div style="background:#f8fafc;padding:15px;border-radius:6px;">
+                    <p style="margin:5px 0;"><strong>Setup Link:</strong></p>
+                    <p style="margin:5px 0;">
+                      <a href="${oneLineUrl}"
+                        style="color:#0575E6;text-decoration:none;font-weight:bold;">
+                        ${oneLineUrl}
+                      </a>
+                    </p>
+
+                    <p style="margin:5px 0;"><strong>OTP:</strong> ${otp}</p>
+                  </div>
+
+                  <div style="text-align:center;margin:25px 0;">
+                    <a href="${oneLineUrl}"
+                      style="background:#0575E6;color:#ffffff;padding:12px 25px;
+                      border-radius:5px;text-decoration:none;font-weight:bold;">
+                      Complete Setup
+                    </a>
+                  </div>
+                </td>
+              </tr>
+
+              <tr>
+                <td style="background:#f1f5f9;padding:15px;text-align:center;
+                  font-size:12px;color:#666;">
+                  © ${new Date().getFullYear()} QCS HRMS. All rights reserved.
+                </td>
+              </tr>
+
+            </table>
+          </td>
+        </tr>
+      </table>
+    </div>
     `
   });
 };
-
 // exports.sendAdminWelcomeEmail = async ({
 //   to,
 //   name,
