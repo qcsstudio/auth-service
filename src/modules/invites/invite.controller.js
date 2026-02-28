@@ -1,6 +1,6 @@
 
 const crypto = require("crypto"); // ✅ Add this at the very top
-
+const Company = require("../companies/company.model");
 const Invite = require("./invite.model");
 const { sendInviteEmail } = require("../../utils/mailer");
 const CompanyService = require("../companies/company.service"); // ✅ IMPORT SERVICE
@@ -174,4 +174,46 @@ exports.setupWorkspaceFromInvite = async (req, res) => {
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
+};
+
+
+exports.inviteUploadCompanyBranding = async (req, res) => {
+  try {
+    const companyId =  req.params.companyId;
+
+    if (!req.files || (!req.files["brand-logo"] && !req.files["cover-image"])) {
+      return res.status(400).json({
+        message: "At least one image (brand-logo or cover-image) is required"
+      });
+    }
+
+    const updateData = {};
+
+    if (req.files["brand-logo"]) {
+      updateData["branding.logo"] =
+        req.files["brand-logo"][0].location;
+    }
+
+    if (req.files["cover-image"]) {
+      updateData["branding.loginImage"] =
+        req.files["cover-image"][0].location;
+    }
+
+    const company = await Company.findByIdAndUpdate(
+      companyId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!company) {
+      return res.status(404).json({ message: "Company not found" });
+    }
+
+    res.status(200).json({
+      message: "Company branding updated",
+      branding: company.branding
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
 };
