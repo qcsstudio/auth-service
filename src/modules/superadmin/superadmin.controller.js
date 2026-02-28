@@ -96,6 +96,7 @@ exports.login = async (req, res) => {
 //   }
 // };
 
+
 exports.getSuperAdminDashboardData = async (req, res) => {
   const { role, id } = req.user;
 
@@ -107,41 +108,93 @@ exports.getSuperAdminDashboardData = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid userId"
+        message: "Invalid userId",
       });
     }
 
+    const userId = new mongoose.Types.ObjectId(id);
     let { status } = req.query;
-    const matchStage = { createdBy: new mongoose.Types.ObjectId(id) };
 
+    const baseMatch = { createdBy: userId };
+    const dataMatch = { createdBy: userId };
+
+    // :white_check_mark: Optional Status Filter (Only for Data)
     if (status) {
       status = status.toUpperCase();
-      const validStatuses = ["ACTIVE", "PAUSED", "SUSPENDED"];
+
+      const validStatuses = [
+        "ACTIVE",
+        "PAUSED",
+        "SUSPENDED",
+        "COMPLETED",
+        "DRAFT",
+      ];
+
       if (!validStatuses.includes(status)) {
         return res.status(400).json({
           success: false,
-          message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`
+          message: `Invalid status. Must be one of: ${validStatuses.join(", ")}`,
         });
       }
-      matchStage.status = status;
+
+      dataMatch.status = status;
     }
 
     const pipeline = [
-      { $match: matchStage },
+      // :small_blue_diamond: Match for overall base
+      { $match: baseMatch },
+
+      // :small_blue_diamond: Lookup Admin
       {
         $lookup: {
           from: "users",
           localField: "adminId",
           foreignField: "_id",
-          as: "adminDetails"
-        }
+          as: "adminDetails",
+        },
       },
       {
         $unwind: {
           path: "$adminDetails",
-          preserveNullAndEmptyArrays: true
-        }
+          preserveNullAndEmptyArrays: true,
+        },
       },
+
+      // :small_blue_diamond: Lookup Active Employees Count
+      {
+        $lookup: {
+          from: "employees",
+          let: { companyId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$companyId", "$$companyId"] },
+                    { $eq: [{ $toLower: "$status" }, "active"] },
+                  ],
+                },
+              },
+            },
+            { $count: "totalEmployees" },
+          ],
+          as: "employeeCount",
+        },
+      },
+
+      // :small_blue_diamond: Add employee count field
+      {
+        $addFields: {
+          totalEmployees: {
+            $ifNull: [
+              { $arrayElemAt: ["$employeeCount.totalEmployees", 0] },
+              0,
+            ],
+          },
+        },
+      },
+
+      // :small_blue_diamond: Project fields
       {
         $project: {
           name: 1,
@@ -155,20 +208,118 @@ exports.getSuperAdminDashboardData = async (req, res) => {
           subscription: 1,
           createdBy: 1,
           createdAt: 1,
+          totalEmployees: 1,
           adminDetails: {
             _id: "$adminDetails._id",
             name: "$adminDetails.name",
             email: "$adminDetails.email",
-            role:"$adminDetails.role"
-          }
-        }
+            role: "$adminDetails.role",
+          },
+        },
       },
+
+      // :fire: FACET (All counts handled here correctly)
       {
         $facet: {
-          data: [{ $sort: { createdAt: -1 } }],
-          count: [{ $count: "total" }]
-        }
-      }
+          // :white_check_mark: Filtered Data
+          data: [
+            { $match: dataMatch },
+            { $sort: { createdAt: -1 } },
+          ],
+
+          // :white_check_mark: Total Companies
+          totalCount: [
+            { $count: "total" },
+          ],
+
+          // :white_check_mark: Active Companies
+          activeCount: [
+            {
+              $match: { status: { $regex: /^active$/i } },
+            },
+            { $count: "total" },
+          ],
+
+          // :white_check_mark: This Month Companies
+          thisMonthCount: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: [{ $year: "$createdAt" }, { $year: "$$NOW" }] },
+                    { $eq: [{ $month: "$createdAt" }, { $month: "$$NOW" }] },
+                  ],
+                },
+              },
+            },
+            { $count: "total" },
+          ],
+        },
+      },
+
+      // :small_blue_diamond: Extract values safely (avoid undefined errors)
+      {
+        $project: {
+          data: 1,
+
+          total: {
+            $ifNull: [
+              { $arrayElemAt: ["$totalCount.total", 0] },
+              0,
+            ],
+          },
+
+          activeCompanies: {
+            $ifNull: [
+              { $arrayElemAt: ["$activeCount.total", 0] },
+              0,
+            ],
+          },
+
+          thisMonthCompanies: {
+            $ifNull: [
+              { $arrayElemAt: ["$thisMonthCount.total", 0] },
+              0,
+            ],
+          },
+
+          activationRate: {
+            $let: {
+              vars: {
+                totalVal: {
+                  $ifNull: [
+                    { $arrayElemAt: ["$totalCount.total", 0] },
+                    0,
+                  ],
+                },
+                activeVal: {
+                  $ifNull: [
+                    { $arrayElemAt: ["$activeCount.total", 0] },
+                    0,
+                  ],
+                },
+              },
+              in: {
+                $cond: [
+                  { $eq: ["$$totalVal", 0] },
+                  0,
+                  {
+                    $round: [
+                      {
+                        $multiply: [
+                          { $divide: ["$$activeVal", "$$totalVal"] },
+                          100,
+                        ],
+                      },
+                      2,
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        },
+      },
     ];
 
     const result = await companymodel.aggregate(pipeline);
@@ -176,15 +327,14 @@ exports.getSuperAdminDashboardData = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Dashboard data fetched successfully",
-      data: result[0].data,
-      total: result[0].count[0]?.total || 0
+      ...result[0], // sends data, total, activeCompanies, etc
     });
 
   } catch (error) {
     return res.status(500).json({
       success: false,
       message: "Internal server error",
-      error: error.message
+      error: error.message,
     });
   }
 };

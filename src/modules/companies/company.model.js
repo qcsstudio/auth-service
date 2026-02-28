@@ -64,6 +64,12 @@ createdBy: {
   required: false   // optional
 },
 
+status: {
+    type: String,
+    enum: ["DRAFT", "ACTIVE", "SUSPENDED", "COMPLETED", "PAUSED"],
+    default: "ACTIVE"
+  },
+
   timeFormat: {
     type: String,
     default: null
