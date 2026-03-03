@@ -11,24 +11,33 @@ exports.sendSetupLink = async (req, res) => {
     const { email, role, trial, linkExpiry } = req.body;
 
     if (!email || !linkExpiry) {
-      return res.status(400).json({ message: "email and expiry required" });
+      return res.status(400).json({ message: "email and linkExpiry required" });
     }
 
     const token = crypto.randomBytes(32).toString("hex");
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
+    // 🔥 FORCE SAFE DATE PARSING
+    const expiryTime = new Date(linkExpiry);
+
+    if (isNaN(expiryTime.getTime())) {
+      return res.status(400).json({ message: "Invalid linkExpiry format" });
+    }
+
+    // 🔥 Always store UTC timestamp safely
+    const expiresAt = new Date(expiryTime.getTime());
+
     const invite = await Invite.create({
       email,
       role: role || "COMPANY_ADMIN",
       trial: !!trial,
-      expiresAt: new Date(linkExpiry),
+      expiresAt,
       token,
       otp
     });
 
-const setupUrl = `https://www.qcsstudios.com/org-setup`;
+    const setupUrl = `https://www.qcsstudios.com/org-setup?token=${token}`;
 
-    // ✅ send ALL THREE in email
     await sendInviteEmail({
       to: email,
       setupUrl,
@@ -36,42 +45,52 @@ const setupUrl = `https://www.qcsstudios.com/org-setup`;
       token
     });
 
-    res.json({
-      message: "setup link sent"
-    });
+    res.json({ message: "Setup link sent successfully" });
+
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
-
- 
 
 exports.validateOtp = async (req, res) => {
   try {
     const { token, otp } = req.body;
 
+    if (!token || !otp) {
+      return res.status(400).json({ message: "Token and OTP required" });
+    }
+
     const invite = await Invite.findOne({ token, used: false });
-    if (!invite) return res.status(400).json({ message: "Invalid invite" });
 
-    if (invite.expiresAt < new Date())
+    if (!invite) {
+      return res.status(400).json({ message: "Invalid invite token" });
+    }
+
+    // 🔥 Safe expiry check using timestamps
+    const now = Date.now();
+    const expiry = new Date(invite.expiresAt).getTime();
+
+    if (now > expiry) {
       return res.status(400).json({ message: "Invite expired" });
+    }
 
-    if (invite.otpVerified)
+    if (invite.otpVerified) {
       return res.status(400).json({ message: "OTP already verified" });
+    }
 
-    if (invite.otp !== otp)
+    if (invite.otp !== otp) {
       return res.status(400).json({ message: "Incorrect OTP" });
+    }
 
     invite.otpVerified = true;
     await invite.save();
 
     res.json({ message: "OTP verified successfully" });
+
   } catch (err) {
     res.status(500).json({ message: "Server error" });
   }
 };
-
-
 
 /* ======================================================
    3️⃣ CREATE COMPANY (SAME PAYLOAD AS SUPER ADMIN)
