@@ -9,6 +9,7 @@ const User = require("../users/user.model"); // For creating admin
 /* ======================================================
    1️⃣ SEND SETUP LINK
 ====================================================== */
+
 exports.sendSetupLink = async (req, res) => {
   try {
     const { email, role, trial, linkExpiry } = req.body;
@@ -22,7 +23,7 @@ exports.sendSetupLink = async (req, res) => {
       return res.status(400).json({ message: "Invalid linkExpiry format" });
     }
 
-    // 🧹 Remove old unused invites for same email
+    // Remove old unused invites
     await Invite.deleteMany({
       email,
       used: false
@@ -42,17 +43,19 @@ exports.sendSetupLink = async (req, res) => {
       used: false
     });
 
+    // ✅ TOKEN ADDED ONLY HERE
     const setupUrl = `https://www.qcsstudios.com/org-setup?token=${token}`;
 
     await sendInviteEmail({
       to: email,
       setupUrl,
-      otp
+      otp,
+      companyName: "QCS HRMS",
+      invitedBy: "Super Admin"
     });
 
     res.status(200).json({
-      message: "Setup link sent successfully",
-      token // optional for testing
+      message: "Setup link sent successfully"
     });
 
   } catch (err) {
@@ -65,22 +68,25 @@ exports.sendSetupLink = async (req, res) => {
 ====================================================== */
 exports.validateOtp = async (req, res) => {
   try {
-    const { token, otp } = req.body;
+    let { token, otp } = req.body;
 
     if (!token || !otp) {
       return res.status(400).json({ message: "Token and OTP required" });
     }
 
+    // ✅ Sanitize token (prevents ?token=undefined issue)
+    token = token.split("?")[0];
+
     const invite = await Invite.findOne({
       token,
       used: false
-    }).sort({ createdAt: -1 });
+    });
 
     if (!invite) {
       return res.status(400).json({ message: "Invalid invite token" });
     }
 
-    if (!invite.expiresAt || Date.now() > invite.expiresAt.getTime()) {
+    if (Date.now() > invite.expiresAt.getTime()) {
       return res.status(400).json({ message: "Invite expired" });
     }
 
