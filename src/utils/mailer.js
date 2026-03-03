@@ -170,7 +170,7 @@ exports.sendInviteEmail = async ({
 
   const transporter = getTransporter();
 
-  // ✅ DO NOT APPEND TOKEN AGAIN
+  // ✅ DO NOT append token again
   const inviteLink = setupUrl;
 
   await transporter.sendMail({
@@ -178,116 +178,61 @@ exports.sendInviteEmail = async ({
     to,
     subject: `You're invited to set up ${companyName || "your company"} on QCS HRMS`,
     html: `
-    <div style="margin:0;padding:0;background:#f4f6f9;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;">
+    <div style="margin:0;padding:0;background:#f4f6f9;font-family:Arial,sans-serif;">
+      <div style="max-width:600px;margin:40px auto;background:#fff;
+        border-radius:10px;box-shadow:0 10px 25px rgba(0,0,0,0.08);overflow:hidden;">
 
-      <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
-        <tr>
-          <td align="center">
+        <div style="background:#0575E6;padding:25px;text-align:center;color:#fff;">
+          <h2 style="margin:0;">QCS HRMS</h2>
+          <p style="margin:5px 0 0;">Secure Company Setup Invitation</p>
+        </div>
 
-            <table width="600" cellpadding="0" cellspacing="0"
-              style="background:#ffffff;border-radius:12px;
-              box-shadow:0 10px 25px rgba(0,0,0,0.08);overflow:hidden;">
+        <div style="padding:30px;color:#333;line-height:1.6;">
+          <h3>You're invited to set up your company</h3>
 
-              <!-- Header -->
-              <tr>
-                <td style="background:#0575E6;padding:30px;text-align:center;color:#ffffff;">
-                  <h1 style="margin:0;font-size:22px;">QCS HRMS</h1>
-                  <p style="margin:5px 0 0;font-size:14px;opacity:0.9;">
-                    Secure Company Setup Invitation
-                  </p>
-                </td>
-              </tr>
+          <p>
+            You have been invited 
+            ${invitedBy ? `by <strong>${invitedBy}</strong>` : ""}
+            to configure <strong>${companyName || "your company"}</strong>.
+          </p>
 
-              <!-- Body -->
-              <tr>
-                <td style="padding:35px;color:#333;line-height:1.6;">
+          <div style="text-align:center;margin:25px 0;">
+            <a href="${inviteLink}"
+              style="background:#0575E6;color:#fff;padding:12px 24px;
+              border-radius:6px;text-decoration:none;font-weight:bold;">
+              Complete Company Setup
+            </a>
+          </div>
 
-                  <h2 style="margin-top:0;font-size:20px;">
-                    You're invited to set up your company
-                  </h2>
+          <div style="background:#f8fafc;border:1px solid #E2E8F0;
+              padding:15px;border-radius:6px;text-align:center;">
+            <p style="margin:0;font-size:14px;">Your One-Time Verification Code</p>
+            <h2 style="margin:10px 0;color:#0575E6;letter-spacing:3px;">
+              ${otp}
+            </h2>
+          </div>
 
-                  <p>
-                    You have been invited ${invitedBy ? `by <strong>${invitedBy}</strong>` : ""}
-                    to configure <strong>${companyName || "your company"}</strong> on QCS HRMS.
-                  </p>
+          <p style="font-size:13px;color:#666;margin-top:20px;">
+            This invitation link will expire in 24 hours.
+          </p>
 
-                  <p>
-                    Click the button below to securely complete your company setup.
-                  </p>
+          <p style="font-size:13px;word-break:break-all;">
+            <a href="${inviteLink}" style="color:#0575E6;">
+              ${inviteLink}
+            </a>
+          </p>
 
-                  <!-- CTA Button -->
-                  <div style="text-align:center;margin:30px 0;">
-                    <a href="${inviteLink}"
-                      style="background:#0575E6;color:#ffffff;
-                      padding:14px 28px;
-                      font-size:16px;
-                      border-radius:6px;
-                      text-decoration:none;
-                      font-weight:600;
-                      display:inline-block;">
-                      Complete Company Setup
-                    </a>
-                  </div>
+          <hr style="margin:25px 0;">
 
-                  <!-- OTP -->
-                  <div style="background:#f8fafc;
-                      border:1px solid #E2E8F0;
-                      padding:15px;
-                      border-radius:6px;
-                      text-align:center;
-                      margin:20px 0;">
+          <p style="font-size:12px;color:#777;">
+            If you did not expect this invitation, you can ignore this email.
+          </p>
+        </div>
 
-                      <p style="margin:0;font-size:14px;color:#555;">
-                        Your One-Time Verification Code
-                      </p>
-
-                      <p style="margin:10px 0;font-size:24px;
-                          font-weight:bold;
-                          letter-spacing:3px;
-                          color:#0575E6;">
-                        ${otp}
-                      </p>
-                  </div>
-
-                  <p style="font-size:13px;color:#666;">
-                    This invitation link will expire in 24 hours for security reasons.
-                  </p>
-
-                  <p style="font-size:13px;word-break:break-all;">
-                    <a href="${inviteLink}" style="color:#0575E6;">
-                      ${inviteLink}
-                    </a>
-                  </p>
-
-                  <hr style="border:none;border-top:1px solid #eee;margin:25px 0;">
-
-                  <p style="font-size:13px;color:#777;">
-                    If you did not expect this invitation, you can safely ignore this email.
-                  </p>
-
-                </td>
-              </tr>
-
-              <!-- Footer -->
-              <tr>
-                <td style="background:#f8fafc;
-                  padding:20px;
-                  text-align:center;
-                  font-size:12px;
-                  color:#888;">
-
-                  © ${new Date().getFullYear()} QCS HRMS<br>
-                  Secure HR Management Platform
-
-                </td>
-              </tr>
-
-            </table>
-
-          </td>
-        </tr>
-      </table>
-
+        <div style="background:#f8fafc;padding:15px;text-align:center;font-size:12px;color:#888;">
+          © ${new Date().getFullYear()} QCS HRMS
+        </div>
+      </div>
     </div>
     `
   });

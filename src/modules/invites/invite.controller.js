@@ -12,16 +12,14 @@ const User = require("../users/user.model"); // For creating admin
 
 exports.sendSetupLink = async (req, res) => {
   try {
-    const { email, role, trial, linkExpiry } = req.body;
+    const { email, role, trial } = req.body;
 
-    if (!email || !linkExpiry) {
-      return res.status(400).json({ message: "email and linkExpiry required" });
+    if (!email) {
+      return res.status(400).json({ message: "Email is required" });
     }
 
-    const expiryTime = new Date(linkExpiry);
-    if (isNaN(expiryTime.getTime())) {
-      return res.status(400).json({ message: "Invalid linkExpiry format" });
-    }
+    // ✅ Server controlled expiry (24 hours)
+    const expiryTime = new Date(Date.now() + 24 * 60 * 60 * 1000);
 
     // Remove old unused invites
     await Invite.deleteMany({
@@ -32,7 +30,7 @@ exports.sendSetupLink = async (req, res) => {
     const token = crypto.randomBytes(32).toString("hex");
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
-    const invite = await Invite.create({
+    await Invite.create({
       email,
       role: role || "COMPANY_ADMIN",
       trial: !!trial,
@@ -43,7 +41,6 @@ exports.sendSetupLink = async (req, res) => {
       used: false
     });
 
-    // ✅ TOKEN ADDED ONLY HERE
     const setupUrl = `https://www.qcsstudios.com/org-setup?token=${token}`;
 
     await sendInviteEmail({
@@ -74,7 +71,7 @@ exports.validateOtp = async (req, res) => {
       return res.status(400).json({ message: "Token and OTP required" });
     }
 
-    // ✅ Sanitize token (prevents ?token=undefined issue)
+    // ✅ Sanitize token (prevents ?token=undefined bug)
     token = token.split("?")[0];
 
     const invite = await Invite.findOne({
