@@ -6,6 +6,9 @@ const { sendInviteEmail } = require("../../utils/mailer");
 const CompanyService = require("../companies/company.service"); // ✅ IMPORT SERVICE
 const User = require("../users/user.model"); // For creating admin
 
+/* ======================================================
+   1️⃣ SEND SETUP LINK
+====================================================== */
 exports.sendSetupLink = async (req, res) => {
   try {
     const { email, role, trial, linkExpiry } = req.body;
@@ -14,26 +17,29 @@ exports.sendSetupLink = async (req, res) => {
       return res.status(400).json({ message: "email and linkExpiry required" });
     }
 
-    const token = crypto.randomBytes(32).toString("hex");
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
-
-    // 🔥 FORCE SAFE DATE PARSING
     const expiryTime = new Date(linkExpiry);
-
     if (isNaN(expiryTime.getTime())) {
       return res.status(400).json({ message: "Invalid linkExpiry format" });
     }
 
-    // 🔥 Always store UTC timestamp safely
-    const expiresAt = new Date(expiryTime.getTime());
+    // 🧹 Remove old unused invites for same email
+    await Invite.deleteMany({
+      email,
+      used: false
+    });
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
 
     const invite = await Invite.create({
       email,
       role: role || "COMPANY_ADMIN",
       trial: !!trial,
-      expiresAt,
+      expiresAt: expiryTime,
       token,
-      otp
+      otp,
+      otpVerified: false,
+      used: false
     });
 
     const setupUrl = `https://www.qcsstudios.com/org-setup?token=${token}`;
@@ -41,17 +47,22 @@ exports.sendSetupLink = async (req, res) => {
     await sendInviteEmail({
       to: email,
       setupUrl,
-      otp,
-      token
+      otp
     });
 
-    res.json({ message: "Setup link sent successfully" });
+    res.status(200).json({
+      message: "Setup link sent successfully",
+      token // optional for testing
+    });
 
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
+/* ======================================================
+   2️⃣ VALIDATE OTP
+====================================================== */
 exports.validateOtp = async (req, res) => {
   try {
     const { token, otp } = req.body;
@@ -60,17 +71,16 @@ exports.validateOtp = async (req, res) => {
       return res.status(400).json({ message: "Token and OTP required" });
     }
 
-    const invite = await Invite.findOne({ token, used: false });
+    const invite = await Invite.findOne({
+      token,
+      used: false
+    }).sort({ createdAt: -1 });
 
     if (!invite) {
       return res.status(400).json({ message: "Invalid invite token" });
     }
 
-    // 🔥 Safe expiry check using timestamps
-    const now = Date.now();
-    const expiry = new Date(invite.expiresAt).getTime();
-
-    if (now > expiry) {
+    if (!invite.expiresAt || Date.now() > invite.expiresAt.getTime()) {
       return res.status(400).json({ message: "Invite expired" });
     }
 
@@ -85,7 +95,9 @@ exports.validateOtp = async (req, res) => {
     invite.otpVerified = true;
     await invite.save();
 
-    res.json({ message: "OTP verified successfully" });
+    res.status(200).json({
+      message: "OTP verified successfully"
+    });
 
   } catch (err) {
     res.status(500).json({ message: "Server error" });
