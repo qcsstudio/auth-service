@@ -74,11 +74,11 @@ exports.validateOtp = async (req, res) => {
     // ✅ Sanitize token (prevents ?token=undefined bug)
     token = token.split("?")[0];
 
-    const invite = await Invite.findOne({
-      token,
-      used: false
-    });
+  console.log("Incoming token:", token);
 
+const invite = await Invite.findOne({ token, used: false });
+
+console.log("Invite found:", invite);
     if (!invite) {
       return res.status(400).json({ message: "Invalid invite token" });
     }
