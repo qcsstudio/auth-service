@@ -4,7 +4,7 @@ const bcrypt = require("bcrypt");
 const companyModel = require("../companies/company.model");
 
 
-const User = require("../users/user.model");
+const User = require("../users/models/user.model");
 
 // 🔐 SUPER ADMIN LOGIN
 exports.superAdminLogin = async (email, password) => {

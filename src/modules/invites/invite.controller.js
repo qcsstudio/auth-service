@@ -4,7 +4,7 @@ const Company = require("../companies/company.model");
 const Invite = require("./invite.model");
 const { sendInviteEmail } = require("../../utils/mailer");
 const CompanyService = require("../companies/company.service"); // ✅ IMPORT SERVICE
-const User = require("../users/user.model"); // For creating admin
+const User = require("../users/models/user.model"); // For creating admin
 
 /* ======================================================
    1️⃣ SEND SETUP LINK

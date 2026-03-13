@@ -9,7 +9,6 @@ router.post("/login", tenantMiddleware, controller.login);
 
 /* ===================== DASHBOARD ===================== */
 // Optional: superadmin-only dashboard
-const authMiddleware = require("../../middlewares/auth.middleware");
 router.get("/super-admin/dashboard", authMiddleware, controller.getSuperAdminDashboardData);
 
 module.exports = router;
