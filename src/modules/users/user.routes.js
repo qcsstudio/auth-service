@@ -1,4 +1,5 @@
 const router = require("express").Router();
+const authMiddleware = require("../../middlewares/auth.middleware");
 const controller = require("./user.controller");
 const tenantMiddleware = require("../../middlewares/tenant.middleware");
 // company admin login
@@ -8,4 +9,6 @@ router.post("/send-otp", controller.sendOTP);
 router.post("/verify-otp", controller.verifyOTP);
 router.post("/reset-password", controller.resetPassword);
 router.post("/change-password", tenantMiddleware, controller.changePassword);
+router.get("/company-dashboard",authMiddleware, controller.getCompanyDashboardData);
+
 module.exports = router;
