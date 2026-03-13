@@ -4,61 +4,101 @@ const employeeSchema = new mongoose.Schema(
   {
     companyId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Company',
+      ref: "Company",
       required: true,
-      index: true
     },
 
-    name: {
+    fullName: {
       type: String,
       required: true,
-      trim: true
+      trim: true,
     },
 
-    email: {
+    workEmail: {
       type: String,
-      required: true,
+      required: [true, "Work Email is required"],
       lowercase: true,
+      trim: true,
+      unique: true
+    },
+
+    phone: {
+      type: String,
       trim: true
+    },
+
+    employeeId: {
+      type: String,
+      required: true,
+      trim: true,
     },
 
     department: {
       type: String,
-      enum: ['Engineering', 'Sales', 'HR', 'Marketing', 'Finance'],
-      required: true
+      enum: [
+          "Engineering",
+          "Sales",
+          "HR",
+          "Marketing",
+          "Finance",
+          "Operations",
+          "Management"
+        ],
+      default: "Engineering",
+      required: true, 
     },
 
-    position: {
+    designation: {
       type: String,
-      required: true
+      required: true,
+      trim: true
+    },
+
+    reportingManager: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Employee",
+      default: null
+    },
+
+    locationBranch: {
+      type: String,
+      required: true,
+      trim: true
     },
 
     joinDate: {
       type: Date,
+    },
+
+    employeeType: {
+      type: String,
+      enum: ["Full-time", "Part-time", "Contract", "Intern", "Temporary"],
       required: true
     },
 
-    status: {
+    probationEndDate: {
+      type: Date,
+      default: null
+    },
+
+    shift: {
       type: String,
-      enum: ['active', 'inactive', 'on-leave'],
-      default: 'active',
-      index: true
+      enum: ["Morning", "Evening", "Night", "Flexible", "Remote"],
+      default: "Morning"
     },
 
-    salary: {
-      type: Number,
-      select: false   // security best practice
+    systemRole: {
+      type: String,
+      enum: ["Manager", "Employee", "Viewer", "HR", "TL"],
+      required: true ,
+      default: "Employee"
     },
-
-    phone: {
-      type: String
-    }
   },
   {
     timestamps: true
   }
 );
 
-const Employee = mongoose.model('Employee', employeeSchema);
+const Employee = mongoose.model("Employee", employeeSchema);
 
 module.exports = Employee;

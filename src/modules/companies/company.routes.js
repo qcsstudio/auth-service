@@ -5,6 +5,23 @@ const { allowRoles } = require("../../middlewares/role.middleware");
 const uploadToS3 = require("../../middlewares/s3Upload");
 const { uploadExcel } = require("../../middlewares/upload.middleware");
 
+// router.post(
+//   "/bulk-upload",
+//   auth,
+//   uploadExcel.single("file"),
+//   controller.bulkUploadCompanyDetails
+// );
+
+router.post("/:companyId/add-employee", controller.addEmployee);
+
+// ✅ Bulk upload employees
+router.post(
+  "/:companyId/bulk-upload-employees",
+  auth,
+  uploadExcel.single("file"),
+  controller.bulkUploadEmployees
+);
+
 /* ===============================
    COMPANY CREATION
 ================================ */

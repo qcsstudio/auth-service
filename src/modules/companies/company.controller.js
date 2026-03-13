@@ -108,6 +108,42 @@ exports.uploadCompanyBranding = async (req, res) => {
 };
 
 
+
+// exports.bulkUploadCompanyDetails = async (req, res) => {
+//   try {
+//      if (!req.file) {
+//       return res.status(400).json({ message: "Excel file required" });
+//     }
+
+//     const result = await service.bulkUploadCompanyDetails(req.file.path);
+
+//     res.status(200).json({
+//       total: result.total,
+//       success: result.success.length,
+//       failed: result.failed.length,
+//       failedRows: result.failed
+//     });
+//   } catch (error) {
+//     res.status(400).json({ message: error.message });
+//   }
+// };
+
+
+exports.addEmployee = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const employee = await service.addEmployee(companyId, req.body);
+
+    res.status(201).json({
+      message: "employee added successfully",
+      employeeId: employee._id,
+      data: employee
+    });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
 exports.bulkUploadEmployees = async (req, res) => {
   try {
     const { companyId } = req.params;
@@ -126,6 +162,7 @@ exports.bulkUploadEmployees = async (req, res) => {
           ? `imported ${result.successCount} employees successfully`
           : `imported ${result.successCount} employees, ${result.failureCount} failed`,
       data: {
+        uploadBatch: result.uploadBatch,
         totalRows: result.totalRows,
         successCount: result.successCount,
         failureCount: result.failureCount,
