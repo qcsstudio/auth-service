@@ -130,7 +130,7 @@ exports.sendAdminWelcomeEmail = async ({
   });
 };
 
-exports.sendWorkspaceEmail2 = async ({
+exports.sendWorkspaceEmail = async ({
   to,
   companyName,
   companyUrl,
