@@ -3,98 +3,133 @@ const mongoose = require("mongoose");
 
 const companymodel = require("../companies/company.model")
 // const authService = require("./auth.service");
-exports.login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res.status(400).json({ message: "Email and password required" });
-    }
-
-    // :fire: SUPER ADMIN LOGIN (no tenant)
-    if (!req.tenant) {
-      const { user, token } = await service.superAdminLogin(email, password);
-
-      return res.json({
-        message: "Login successful",
-        user: {
-          id: user._id,
-          name: user.name,
-          email: user.email,
-          role: "SUPER_ADMIN"
-        },
-        token
-      });
-    }
-
-    // :fire: COMPANY LOGIN
-    const { user, token, forcePasswordChange } =
-      await service.companyAdminLogin(email, password, req.tenant);
-
-    return res.json({
-      message: "Login successful",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        companyId: user.companyId,
-        istemporyPassword:user.istemporyPassword
-      },
-      forcePasswordChange,
-      token
-    });
-
-  } catch (err) {
-    console.log(err,"eeee")
-    return res.status(401).json({ message: err.message });
-  }
-}; 
 // exports.login = async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
+//   try {
+//     const { email, password } = req.body;
 
-//     if (!email || !password) {
-//       return res.status(400).json({ message: "Email and password required" });
-//     }
+//     if (!email || !password) {
+//       return res.status(400).json({ message: "Email and password required" });
+//     }
 
-//     // 🔥 SUPER ADMIN LOGIN (no tenant)
-//     if (!req.tenant) {
-//       const { user, token } = await service.superAdminLogin(email, password);
+//     // :fire: SUPER ADMIN LOGIN (no tenant)
+//     if (!req.tenant) {
+//       const { user, token } = await service.superAdminLogin(email, password);
 
-//       return res.json({
-//         message: "Login successful",
-//         user: {
-//           id: user._id,
-//           name: user.name,
-//           email: user.email,
-//           role: "SUPER_ADMIN"
-//         },
-//         token
-//       });
-//     }
+//       return res.json({
+//         message: "Login successful",
+//         user: {
+//           id: user._id,
+//           name: user.name,
+//           email: user.email,
+//           role: "SUPER_ADMIN"
+//         },
+//         token
+//       });
+//     }
 
-//     // 🔥 COMPANY LOGIN
-//     const { user, token, forcePasswordChange } =
-//       await service.companyAdminLogin(email, password, req.tenant);
+//     // :fire: COMPANY LOGIN
+//     const { user, token, forcePasswordChange } =
+//       await service.companyAdminLogin(email, password, req.tenant);
 
-//     return res.json({
-//       message: "Login successful",
-//       user: {
-//         id: user._id,
-//         name: user.name,
-//         email: user.email,
-//         role: user.role,
-//         companyId: user.companyId
-//       },
-//       forcePasswordChange,
-//       token
-//     });
+//     return res.json({
+//       message: "Login successful",
+//       user: {
+//         id: user._id,
+//         name: user.name,
+//         email: user.email,
+//         role: user.role,
+//         companyId: user.companyId,
+//         istemporyPassword:user.istemporyPassword
+//       },
+//       forcePasswordChange,
+//       token
+//     });
 
-//   } catch (err) {
-//     return res.status(401).json({ message: err.message });
-//   }
-// };
+//   } catch (err) {
+//     console.log(err,"eeee")
+//     return res.status(401).json({ message: err.message });
+//   }
+// }; 
+
+
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password required" });
+    }
+
+    // 1️⃣ Find user (works for all roles)
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // 2️⃣ Check company for COMPANY_ADMIN and EMPLOYEE
+    if (user.role !== "SUPER_ADMIN") {
+      const company = await Company.findById(user.companyId);
+      if (!company) {
+        return res.status(400).json({ message: "Company not found" });
+      }
+      if (company.status !== "ACTIVE") {
+        return res.status(400).json({ message: "Company is not active" });
+      }
+    }
+
+    // 3️⃣ Password check
+    let isPasswordMatch = false;
+
+    // First-time login with temp password
+    if (user.mustChangePassword && user.adminTempPassword) {
+      isPasswordMatch = password === user.adminTempPassword;
+    } else {
+      isPasswordMatch = await bcrypt.compare(password, user.password);
+    }
+
+    if (!isPasswordMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // 4️⃣ Force password change for first login
+    if (user.mustChangePassword) {
+      return res.status(200).json({
+        forcePasswordChange: true,
+        userId: user._id,
+        email: user.email,
+        role: user.role,
+        companyId: user.companyId
+      });
+    }
+
+    // 5️⃣ Issue JWT
+    const token = jwt.sign(
+      {
+        userId: user._id,
+        role: user.role,
+        companyId: user.companyId
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.json({
+      message: "Login successful",
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        companyId: user.companyId
+      },
+      token
+    });
+
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ message: err.message });
+  }
+};
 
 
 exports.getSuperAdminDashboardData = async (req, res) => {
