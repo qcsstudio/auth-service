@@ -14,7 +14,7 @@ const QuestionSchema = new Schema(
   {
     companyId:       { type: Schema.Types.ObjectId, ref: "Company", },
     adminId:         { type: Schema.Types.ObjectId, ref: "User",    },
-    cycleId:         { type: Schema.Types.ObjectId, ref: "AppraisalCycle", },
+    cycleId:         { type: Schema.Types.ObjectId, ref: "AppraisalCycle", default: null },
     text:            { type: String,  trim: true },
     options:         { type: [OptionSchema], default: [] },
     correctOptionId: { type: String, default: null },

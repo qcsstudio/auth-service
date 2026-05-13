@@ -87,3 +87,33 @@ exports.createQuestion = async (req, res) => {
     });
   }
 };
+
+exports.getAllQuestions = async (req, res) => {
+  try {
+    const companyId = req.user?.companyId;
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "Company ID not found in user",
+      });
+    }
+
+    const filter = { companyId };
+    const questions = await Question.find(filter)
+      .sort({  createdAt: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      count: questions.length,
+      data: questions,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: error.message,
+      data: [],
+    });
+  }
+};

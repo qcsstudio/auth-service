@@ -93,3 +93,28 @@ exports.createCycle = async (req, res) => {
     });
   }
 };
+exports.checkCompanyCycleExists = async (req, res) => {
+  try {
+    const companyId = req.user?.companyId;
+
+    if (!companyId) {
+      return res.status(400).json({
+        success: false,
+        message: "Company ID not found in user",
+      });
+    }
+
+    const exists = await AppraisalCycle.exists({ companyId });
+
+    return res.status(200).json({
+      exists: !!exists,
+    });
+
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      exists: false,
+      message: error.message,
+    });
+  }
+};
