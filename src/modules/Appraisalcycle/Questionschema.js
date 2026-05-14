@@ -11,6 +11,7 @@ const OptionSchema = new Schema(
       type: String,
       trim: true,
     },
+     isCorrect: { type: Boolean, default: false },
   },
   { _id: false }
 );

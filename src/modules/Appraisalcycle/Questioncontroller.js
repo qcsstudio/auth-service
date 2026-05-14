@@ -25,22 +25,12 @@ const normalizeArray = (val) => {
 
 exports.createQuestions = async (req, res) => {
   try {
-
-    // ================= USER DATA =================
-
-    const adminId = req.user?._id;
-
+    const adminId = req.user?.id;
     const companyId = req.user?.companyId;
 
-    // ================= BODY DATA =================
-
-    const {
-      cycleId,
-      questions,
-    } = req.body;
+    const { cycleId, questions } = req.body;
 
     // ================= VALIDATION =================
-
     if (!companyId) {
       return res.status(400).json({
         success: false,
@@ -48,142 +38,77 @@ exports.createQuestions = async (req, res) => {
       });
     }
 
-    if (!questions || !Array.isArray(questions)) {
+    if (!Array.isArray(questions) || questions.length === 0) {
       return res.status(400).json({
         success: false,
-        message: "questions array is required",
+        message: "Questions array is required",
       });
     }
 
-    if (questions.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "At least one question is required",
-      });
-    }
-
-    // ================= PREPARE QUESTIONS =================
-
+    // ================= PREPARE =================
     const preparedQuestions = questions.map((question, qIndex) => {
-
-      // ================= QUESTION DESTRUCTURE =================
-
       const {
         text,
         options,
-        correctOptionId,
         ratingScale,
         hasComment,
         order,
         status,
       } = question;
 
-      // ================= QUESTION VALIDATION =================
-
-      if (!text || !text.trim()) {
-        throw new Error(
-          `Question text missing at question ${qIndex + 1}`
-        );
+      if (!text?.trim()) {
+        throw new Error(`Question text missing at question ${qIndex + 1}`);
       }
-
-      // ================= NORMALIZE OPTIONS =================
 
       const normalizedOptions = normalizeArray(options);
 
       if (normalizedOptions.length < 2) {
-        throw new Error(
-          `Minimum 2 options required at question ${qIndex + 1}`
-        );
+        throw new Error(`Minimum 2 options required at question ${qIndex + 1}`);
       }
 
-      // ================= PREPARE OPTIONS =================
-
-      const safeOptions = normalizedOptions.map(
-        (option, optionIndex) => {
-
-          // ===== STRING OPTION =====
-
-          if (typeof option === "string") {
-            return {
-              id: String(optionIndex + 1),
-              text: option.trim(),
-            };
-          }
-
-          // ===== OBJECT OPTION =====
-
-          const {
-            id,
-            text,
-          } = option;
-
+      const safeOptions = normalizedOptions.map((option, index) => {
+        if (typeof option === "string") {
           return {
-            id: id || String(optionIndex + 1),
-            text: text?.trim() || "",
+            id: String(index + 1),
+            text: option.trim(),
+            isCorrect: false,
           };
         }
-      );
 
-      // ================= EMPTY OPTION CHECK =================
+        return {
+          id: option.id || String(index + 1),
+          text: option.text?.trim() || "",
+          isCorrect: option.isCorrect === true,
+        };
+      });
 
-      const hasEmptyOption = safeOptions.some(
-        (option) => !option.text
-      );
+      // check at least one correct answer
+      const hasCorrect = safeOptions.some((opt) => opt.isCorrect === true);
 
-      if (hasEmptyOption) {
-        throw new Error(
-          `Empty option found at question ${qIndex + 1}`
-        );
+      if (!hasCorrect) {
+        throw new Error(`No correct option marked at question ${qIndex + 1}`);
       }
 
-      // ================= CORRECT OPTION VALIDATION =================
+      const hasEmpty = safeOptions.some((opt) => !opt.text);
 
-      const validCorrectOption = safeOptions.some(
-        (option) => option.id === correctOptionId
-      );
-
-      if (!validCorrectOption) {
-        throw new Error(
-          `Invalid correctOptionId at question ${qIndex + 1}`
-        );
+      if (hasEmpty) {
+        throw new Error(`Empty option found at question ${qIndex + 1}`);
       }
-
-      // ================= FINAL QUESTION OBJECT =================
 
       return {
-
         companyId,
-
         adminId,
-
         cycleId: cycleId || null,
-
         text: text.trim(),
-
         options: safeOptions,
-
-        correctOptionId,
-
-        ratingScale: ratingScale || 5,
-
-        hasComment:
-          typeof hasComment === "boolean"
-            ? hasComment
-            : true,
-
-        order: order || qIndex + 1,
-
+        ratingScale: ratingScale ?? 5,
+        hasComment: typeof hasComment === "boolean" ? hasComment : true,
+        order: order ?? qIndex + 1,
         status: status || "active",
       };
     });
 
-    // ================= INSERT QUESTIONS =================
-
-    const createdQuestions = await Question.insertMany(
-      preparedQuestions
-    );
-
-    // ================= SUCCESS RESPONSE =================
+    const createdQuestions = await Question.insertMany(preparedQuestions);
 
     return res.status(201).json({
       success: true,
@@ -193,17 +118,12 @@ exports.createQuestions = async (req, res) => {
     });
 
   } catch (error) {
-
-    // ================= ERROR RESPONSE =================
-
     return res.status(500).json({
       success: false,
       message: error.message,
     });
-
   }
 };
-
 exports.getAllQuestions = async (req, res) => {
   try {
     const companyId = req.user?.companyId;

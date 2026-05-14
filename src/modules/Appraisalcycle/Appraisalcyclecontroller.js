@@ -12,7 +12,7 @@ const normalizeArray = (val) => {
 exports.createCycle = async (req, res) => {
   try {
 
-    const adminId = req.user?._id;
+    const adminId = req.user?.id;
     const companyId = req.user?.companyId;
     const {
       name,
