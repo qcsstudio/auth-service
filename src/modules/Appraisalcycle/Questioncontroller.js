@@ -1,90 +1,206 @@
 const Question = require("./Questionschema");
+// ================= NORMALIZE ARRAY =================
 
 const normalizeArray = (val) => {
-  if (val === undefined || val === null) return [];
-  if (Array.isArray(val)) return val;
-  if (typeof val === "string") {
-    return val.split(",").map((v) => v.trim()).filter(Boolean);
+
+  if (val === undefined || val === null) {
+    return [];
   }
+
+  if (Array.isArray(val)) {
+    return val;
+  }
+
+  if (typeof val === "string") {
+    return val
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+  }
+
   return [val];
 };
 
-exports.createQuestion = async (req, res) => {
+// ================= CREATE QUESTIONS =================
+
+exports.createQuestions = async (req, res) => {
   try {
+
+    // ================= USER DATA =================
+
     const adminId = req.user?._id;
+
     const companyId = req.user?.companyId;
+
+    // ================= BODY DATA =================
 
     const {
       cycleId,
-      text,
-      options,
-      correctOptionId,
-      ratingScale,
-      hasComment,
-      order,
-      status,
+      questions,
     } = req.body;
 
-    if (!companyId || !text) {
+    // ================= VALIDATION =================
+
+    if (!companyId) {
       return res.status(400).json({
         success: false,
-        message: "companyId and text are required",
+        message: "Company not found",
       });
     }
-    const safeOptions = normalizeArray(options).map((opt, index) => {
-      if (typeof opt === "string") {
-        return {
-          id: String(index + 1),
-          text: opt,
-          isCorrect: false,
-        };
+
+    if (!questions || !Array.isArray(questions)) {
+      return res.status(400).json({
+        success: false,
+        message: "questions array is required",
+      });
+    }
+
+    if (questions.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one question is required",
+      });
+    }
+
+    // ================= PREPARE QUESTIONS =================
+
+    const preparedQuestions = questions.map((question, qIndex) => {
+
+      // ================= QUESTION DESTRUCTURE =================
+
+      const {
+        text,
+        options,
+        correctOptionId,
+        ratingScale,
+        hasComment,
+        order,
+        status,
+      } = question;
+
+      // ================= QUESTION VALIDATION =================
+
+      if (!text || !text.trim()) {
+        throw new Error(
+          `Question text missing at question ${qIndex + 1}`
+        );
       }
+
+      // ================= NORMALIZE OPTIONS =================
+
+      const normalizedOptions = normalizeArray(options);
+
+      if (normalizedOptions.length < 2) {
+        throw new Error(
+          `Minimum 2 options required at question ${qIndex + 1}`
+        );
+      }
+
+      // ================= PREPARE OPTIONS =================
+
+      const safeOptions = normalizedOptions.map(
+        (option, optionIndex) => {
+
+          // ===== STRING OPTION =====
+
+          if (typeof option === "string") {
+            return {
+              id: String(optionIndex + 1),
+              text: option.trim(),
+            };
+          }
+
+          // ===== OBJECT OPTION =====
+
+          const {
+            id,
+            text,
+          } = option;
+
+          return {
+            id: id || String(optionIndex + 1),
+            text: text?.trim() || "",
+          };
+        }
+      );
+
+      // ================= EMPTY OPTION CHECK =================
+
+      const hasEmptyOption = safeOptions.some(
+        (option) => !option.text
+      );
+
+      if (hasEmptyOption) {
+        throw new Error(
+          `Empty option found at question ${qIndex + 1}`
+        );
+      }
+
+      // ================= CORRECT OPTION VALIDATION =================
+
+      const validCorrectOption = safeOptions.some(
+        (option) => option.id === correctOptionId
+      );
+
+      if (!validCorrectOption) {
+        throw new Error(
+          `Invalid correctOptionId at question ${qIndex + 1}`
+        );
+      }
+
+      // ================= FINAL QUESTION OBJECT =================
+
       return {
-        id: opt?.id || String(index + 1),
-        text: opt?.text || "",
-        isCorrect: opt?.isCorrect || false,
+
+        companyId,
+
+        adminId,
+
+        cycleId: cycleId || null,
+
+        text: text.trim(),
+
+        options: safeOptions,
+
+        correctOptionId,
+
+        ratingScale: ratingScale || 5,
+
+        hasComment:
+          typeof hasComment === "boolean"
+            ? hasComment
+            : true,
+
+        order: order || qIndex + 1,
+
+        status: status || "active",
       };
     });
 
-    if (
-      correctOptionId &&
-      !safeOptions.some((o) => o.id === correctOptionId)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "correctOptionId must match an option id",
-      });
-    }
+    // ================= INSERT QUESTIONS =================
 
-    const payload = {
-      companyId,
-      adminId,
-      cycleId,
-      text,
-      options: safeOptions,
-      correctOptionId,
-      ratingScale,
-      hasComment,
-      order,
-      status,
-    };
+    const createdQuestions = await Question.insertMany(
+      preparedQuestions
+    );
 
-    Object.keys(payload).forEach((key) => {
-      if (payload[key] === undefined) delete payload[key];
-    });
-
-    const question = await Question.create(payload);
+    // ================= SUCCESS RESPONSE =================
 
     return res.status(201).json({
       success: true,
-      message: "Question created successfully",
-      data: question,
+      message: "Questions created successfully",
+      count: createdQuestions.length,
+      data: createdQuestions,
     });
+
   } catch (error) {
+
+    // ================= ERROR RESPONSE =================
+
     return res.status(500).json({
       success: false,
       message: error.message,
     });
+
   }
 };
 
